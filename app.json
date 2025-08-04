@@ -2,7 +2,7 @@
   "expo": {
     "name": "Gestor",
     "slug": "Gestor",
-    "version": "1.0.0",
+    "version": "2.3.7",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -33,3 +33,9 @@
     }
   }
 }
+
+// info da Versao:
+// x.y.z
+// x = Adiciona 1 a cada build
+// y = Tanto de commits feito nessa build
+// z = Tanto de telas q foram editadas
