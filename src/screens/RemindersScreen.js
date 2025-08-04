@@ -1,10 +1,9 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Modal } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { collection, query, where, orderBy, onSnapshot, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, setDoc} from 'firebase/firestore';
 import { auth, db } from '../firebase';
-import PropTypes from 'prop-types'
+import PropTypes from 'prop-types';
 
 const RemindersScreen = ({ navigation }) => {
   const [reminders, setReminders] = useState([]);
@@ -22,9 +21,10 @@ const RemindersScreen = ({ navigation }) => {
       return;
     }
 
+    const userId = auth.currentUser.uid;
+
     const q = query(
-      collection(db, 'reminders'),
-      where('userId', '==', auth.currentUser.uid),
+      collection(db, 'reminders', userId, 'lembretes'),
       orderBy('createdAt', 'desc')
     );
 
@@ -62,28 +62,37 @@ const RemindersScreen = ({ navigation }) => {
   };
 
   const handleSaveReminder = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
     if (!reminderTitle.trim() || !reminderDate.trim() || !reminderTime.trim()) {
       Alert.alert('Erro', 'Por favor, preencha pelo menos o título, data e horário do lembrete');
       return;
     }
 
+    const reminderData = {
+      title: reminderTitle.trim(),
+      description: reminderDescription.trim(),
+      date: reminderDate.trim(),
+      time: reminderTime.trim(),
+    };
+
     try {
-      const reminderData = {
-        title: reminderTitle.trim(),
-        description: reminderDescription.trim(),
-        date: reminderDate.trim(),
-        time: reminderTime.trim(),
-        userId: auth.currentUser.uid,
-      };
+      await setDoc(doc(db, 'reminders', user.uid), {
+        email: user.email
+      }, { merge: true });
+
+      const reminderRef = collection(db, 'reminders', user.uid, 'lembretes');
 
       if (editingReminder) {
-        await updateDoc(doc(db, 'reminders', editingReminder.id), {
+        const docRef = doc(db, 'reminders', user.uid, 'lembretes', editingReminder.id);
+        await updateDoc(docRef, {
           ...reminderData,
           updatedAt: serverTimestamp(),
         });
         Alert.alert('Sucesso', 'Lembrete atualizado com sucesso!');
       } else {
-        await addDoc(collection(db, 'reminders'), {
+        await addDoc(reminderRef, {
           ...reminderData,
           createdAt: serverTimestamp(),
         });
@@ -101,7 +110,10 @@ const RemindersScreen = ({ navigation }) => {
     }
   };
 
+
   const handleDeleteReminder = (reminder) => {
+    const userId = auth.currentUser.uid;
+
     Alert.alert(
       'Confirmar Exclusão',
       `Tem certeza que deseja excluir o lembrete "${reminder.title}"?`,
@@ -112,7 +124,8 @@ const RemindersScreen = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteDoc(doc(db, 'reminders', reminder.id));
+              const docRef = doc(db, 'reminders', userId, 'lembretes', reminder.id);
+              await deleteDoc(docRef);
               Alert.alert('Sucesso', 'Lembrete excluído com sucesso!');
             } catch (error) {
               console.error('Erro ao excluir lembrete:', error);
@@ -184,35 +197,39 @@ const RemindersScreen = ({ navigation }) => {
             <Text style={styles.modalTitle}>
               {editingReminder ? 'Editar Lembrete' : 'Novo Lembrete'}
             </Text>
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="Título do lembrete *"
+              placeholderTextColor={"#999"}
               value={reminderTitle}
               onChangeText={setReminderTitle}
             />
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="Descrição (opcional)"
+              placeholderTextColor={"#999"}
               value={reminderDescription}
               onChangeText={setReminderDescription}
             />
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="Data (DD/MM/AAAA) *"
+              placeholderTextColor={"#999"}
               value={reminderDate}
               onChangeText={setReminderDate}
             />
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="Horário (HH:MM) *"
+              placeholderTextColor={"#999"}
               value={reminderTime}
               onChangeText={setReminderTime}
             />
-            
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
@@ -386,5 +403,3 @@ const styles = StyleSheet.create({
 });
 
 export default RemindersScreen;
-
-

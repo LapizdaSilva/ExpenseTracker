@@ -2,7 +2,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { collection, query, where, orderBy, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import PropTypes from 'prop-types';
 
@@ -48,7 +48,7 @@ export default function HomeScreen({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteDoc(doc(db, 'operations', item.opId));
+              await deleteDoc(doc(db, 'operations', auth.currentUser.uid, item.collectionPath, item.opId));
               Alert.alert('Sucesso', 'Operação excluída com sucesso!');
             } catch (error) {
               console.error('Erro ao excluir operação:', error);
@@ -69,37 +69,60 @@ export default function HomeScreen({ navigation }) {
       return;
     }
 
-    const q = query(
-      collection(db, 'operations'),
-      where('userId', '==', auth.currentUser.uid),
-      orderBy('createdAt', 'desc')
-    );
+    const uid = auth.currentUser.uid;
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const operationsData = [];
-      let totalBalance = 0; // VARIAVEL BALANÇA
+    const entradasRef = collection(db, 'operations', uid, 'entradas');
+    const saidasRef = collection(db, 'operations', uid, 'saidas');
 
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        operationsData.push({ opId: doc.id, ...data });
+    const qEntradas = query(entradasRef, orderBy('createdAt', 'desc'));
+    const qSaidas = query(saidasRef, orderBy('createdAt', 'desc'));
 
-        if (data.type === 'Entradas') {
-          totalBalance += data.total;
-        } else {
-          totalBalance -= data.total;
-        }
-      });
-
-      setOperations(operationsData);
-      setBalance(totalBalance);
-      setLoading(false);
-    }, (error) => {
-      console.error('Erro ao buscar operações:', error);
-      setLoading(false);
+    const unsubEntradas = onSnapshot(qEntradas, (snapshot) => {
+      const entradas = snapshot.docs.map(doc => ({
+        opId: doc.id,
+        type: 'Entradas',
+        ...doc.data(),
+        collectionPath: `entradas`,
+      }));
+      updateOperations(entradas, null);
     });
 
-    return () => unsubscribe();
+    const unsubSaidas = onSnapshot(qSaidas, (snapshot) => {
+      const saidas = snapshot.docs.map(doc => ({
+        opId: doc.id,
+        type: 'Saídas',
+        ...doc.data(),
+        collectionPath: `saidas`,
+      }));
+      updateOperations(null, saidas);
+    });
+
+    let entradasState = [];
+    let saidasState = [];
+
+    const updateOperations = (newEntradas, newSaidas) => {
+      if (newEntradas !== null) entradasState = newEntradas;
+      if (newSaidas !== null) saidasState = newSaidas;
+
+      const combined = [...entradasState, ...saidasState];
+      combined.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+      let total = 0;
+      combined.forEach(op => {
+        total += op.type === 'Entradas' ? op.total : -op.total;
+      });
+
+      setOperations(combined);
+      setBalance(total);
+      setLoading(false);
+    };
+
+    return () => {
+      unsubEntradas();
+      unsubSaidas();
+    };
   }, [navigation]);
+
 
   const groupOperationsByDate = (operations) => {
     return operations.reduce((acc, item) => {
@@ -213,7 +236,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: 'gray',
+    color: 'black',
     marginTop: 20,
     marginBottom: 10,
   },

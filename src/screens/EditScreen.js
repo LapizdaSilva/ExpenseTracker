@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth} from '../firebase';
 import PropTypes from 'prop-types';
 import DropdownComponent from '../operacoes/dropdown';
 
 const categoriaDesp = [
   { label: 'Alimentação', value: 'Alimentação' },
-  { label: 'Transporte', value: 'Transporte' },
+  { label: 'Transporte', value: 'Transporte'},
   { label: 'Saúde', value: 'Saúde' },
   { label: 'Lazer', value: 'Lazer' },
   { label: 'Entretenimento', value: 'Entretenimento' },
@@ -43,7 +43,7 @@ export default function EditScreen({ route, navigation }) {
 
     try {
       setLoading(true);
-      const ref = doc(db, 'operations', operations.opId);
+      const ref = doc(db, 'operations', auth.currentUser.uid, operations.collectionPath, operations.opId);
       await updateDoc(ref, {
         category,
         description,
@@ -94,6 +94,7 @@ export default function EditScreen({ route, navigation }) {
 
       <DropdownComponent
         placeholder="Categoria"
+        placeholderTextColor={"#999"}
         data={operationType === 'Saídas' ? categoriaDesp : categoriaRec}
         value={category}
         onChange={setCategory}
@@ -103,6 +104,7 @@ export default function EditScreen({ route, navigation }) {
       <TextInput
         style={styles.input}
         placeholder="Descrição (Opcional)"
+        placeholderTextColor={"#999"}
         value={description}
         onChangeText={setDescription}
         editable={!loading}
@@ -111,6 +113,7 @@ export default function EditScreen({ route, navigation }) {
       <TextInput
         style={styles.input}
         placeholder="Total *"
+        placeholderTextColor={"#999"}
         keyboardType="numeric"
         value={total}
         onChangeText={(value) => setTotal(formatCurrency(value))}
@@ -152,6 +155,7 @@ EditScreen.propTypes = {
         description: PropTypes.string,
         total: PropTypes.number.isRequired,
         type: PropTypes.string,
+        collectionPath: PropTypes.string,
       }).isRequired,
     }).isRequired,
   }).isRequired,

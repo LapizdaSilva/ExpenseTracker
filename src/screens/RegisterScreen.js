@@ -63,6 +63,7 @@ const RegisterScreen = ({ navigation }) => {
       <TextInput
         style={styles.input}
         placeholder="Digite seu email"
+        placeholderTextColor={"#999"}
         keyboardType="email-address"
         autoCapitalize="none"
         value={email}
@@ -72,6 +73,7 @@ const RegisterScreen = ({ navigation }) => {
       <TextInput
         style={styles.input}
         placeholder="Digite sua Senha"
+        placeholderTextColor={"#999"}
         secureTextEntry
         value={password}
         onChangeText={setPassword}
@@ -80,6 +82,7 @@ const RegisterScreen = ({ navigation }) => {
       <TextInput
         style={styles.input}
         placeholder="Confirme sua Senha"
+        placeholderTextColor={"#999"}
         secureTextEntry
         value={confirmPassword}
         onChangeText={setConfirmPassword}

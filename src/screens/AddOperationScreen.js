@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert} from 'react-native';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, setDoc, doc, serverTimestamp, addDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import PropTypes from 'prop-types';
 import DropdownComponent from '../operacoes/dropdown';  
@@ -13,7 +13,7 @@ const categoriaDesp = [
   { label: 'Lazer', value: 'Lazer' },
   { label: 'Entretenimento', value: 'Entretenimento' },
   { label: 'Supermercado', value: 'Supermercado' },
-  { label: 'Assinaturas', value: 'Assinaturas' },
+  { label: 'Assinaturas', value: 'Assinaturas' }, 
   { label: 'Outros', value: 'Outros' },
 ];
 
@@ -26,7 +26,7 @@ const categoriaRec = [
 ];
 
 const AddOperationScreen = ({ navigation }) => {
-  const [operationType, setOperationType] = useState('Saídas');
+  const [operationType, setOperationType] = useState('saidas');
   const [date, setDate] = useState(new Date());
   const [description, setDescription] = useState('');
   const [total, setTotal] = useState('');
@@ -71,7 +71,16 @@ const AddOperationScreen = ({ navigation }) => {
         opid: opId,
       };
 
-      await addDoc(collection(db, 'operations'), operationData);
+      const userId = auth.currentUser.uid;
+      const tipo = operationType.toLowerCase();
+
+      await setDoc(doc(db, 'operations', userId), {
+        email: auth.currentUser.email
+      }, { merge: true });
+
+      await addDoc(collection(db, 'operations', userId, tipo), {
+        ...operationData
+      });
 
       Alert.alert('Sucesso', 'Operação salva com sucesso!', [
         { text: 'OK', onPress: () => {
@@ -106,11 +115,11 @@ const AddOperationScreen = ({ navigation }) => {
       <View style={styles.toggleContainer}>
 
         <TouchableOpacity
-          style={[styles.toggleButton, operationType === 'Saídas' && styles.toggleButtonActive]}
-          onPress={() => setOperationType('Saídas')}
+          style={[styles.toggleButton, operationType === 'saidas' && styles.toggleButtonActive]}
+          onPress={() => setOperationType('saidas')}
           disabled={loading}
         >
-          <Text style={[styles.toggleButtonText, operationType === 'Saídas' && styles.toggleButtonTextActive]}>Saídas</Text>
+          <Text style={[styles.toggleButtonText, operationType === 'saidas' && styles.toggleButtonTextActive]}>Saídas</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -125,20 +134,23 @@ const AddOperationScreen = ({ navigation }) => {
       <TextInput
         style={styles.input}
         placeholder="data (DD/MM/YYYY)"
+        placeholderTextColor={"#999"}
         value={date}                             // AQUI DATA
         onChangeText={setDate}
         editable={!loading}
       />
       <DropdownComponent
         placeholder="Categoria"
-        data={operationType === 'Saídas' ? categoriaDesp : categoriaRec}   // AQUI CATEGORIA
+        placeholderTextColor={"#999"}
+        data={operationType === 'saidas' ? categoriaDesp : categoriaRec}   // AQUI CATEGORIA
         value={category}
         onChange={setCategory}
         editable={!loading}
       />
       <TextInput
         style={styles.input}
-        placeholder="Descrição (Opcional)" 
+        placeholder="Descrição (Opcional)"
+        placeholderTextColor={"#999"}
         value={description} 
         onChangeText={setDescription}
         editable={!loading}
@@ -146,6 +158,7 @@ const AddOperationScreen = ({ navigation }) => {
       <TextInput 
         style={styles.input} 
         placeholder="Total *" 
+        placeholderTextColor={"#999"}
         keyboardType="numeric"
         value={total}
         onChangeText={(value) => setTotal(formatCurrency(value))}

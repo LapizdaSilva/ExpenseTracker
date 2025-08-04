@@ -53,6 +53,7 @@ const LoginScreen = ({ navigation }) => {
       <TextInput
         style={styles.input}
         placeholder="Digite seu email"
+        placeholderTextColor={"#999"}
         keyboardType="email-address"
         autoCapitalize="none"
         value={email}
@@ -63,6 +64,7 @@ const LoginScreen = ({ navigation }) => {
         style={styles.input}
         placeholder="Digite sua Senha"
         secureTextEntry
+        placeholderTextColor={"#999"}
         value={password}
         onChangeText={setPassword}
         editable={!loading}

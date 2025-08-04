@@ -1,8 +1,7 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import PropTypes from 'prop-types';
 
@@ -17,38 +16,64 @@ const RecipesScreen = ({ navigation }) => {
       return;
     }
 
-    const q = query(
-      collection(db, 'operations'),
-      where('userId', '==', auth.currentUser.uid),
-      orderBy('createdAt', 'desc')
-    );
+    const uid = auth.currentUser.uid;
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const transactionsData = [];
-      querySnapshot.forEach((doc) => {
-        transactionsData.push({ id: doc.id, ...doc.data() });
-      });
-      setTransactions(transactionsData);
-      setLoading(false);
-    }, (error) => {
-      console.error('Erro ao buscar movimentações:', error);
-      Alert.alert('Erro', 'Falha ao carregar movimentações. Verifique sua conexão.');
-      setLoading(false);
+    const entradasRef = collection(db, 'operations', uid, 'entradas');
+    const saidasRef = collection(db, 'operations', uid, 'saidas');
+
+    const qEntradas = query(entradasRef, orderBy('createdAt', 'desc'));
+    const qSaidas = query(saidasRef, orderBy('createdAt', 'desc'));
+
+    const unsubEntradas = onSnapshot(qEntradas, (snapshot) => {
+      const entradas = snapshot.docs.map(doc => ({
+        opId: doc.id,
+        type: 'Entradas',
+        collectionPath: 'entradas',
+        ...doc.data(),
+      }));
+      updateTransactions(entradas, null);
     });
 
-    return () => unsubscribe();
+    const unsubSaidas = onSnapshot(qSaidas, (snapshot) => {
+      const saidas = snapshot.docs.map(doc => ({
+        opId: doc.id,
+        type: 'Saídas',
+        collectionPath: 'saidas',
+        ...doc.data(),
+      }));
+      updateTransactions(null, saidas);
+    });
+
+    let entradasState = [];
+    let saidasState = [];
+
+    const updateTransactions = (newEntradas, newSaidas) => {
+      if (newEntradas !== null) entradasState = newEntradas;
+      if (newSaidas !== null) saidasState = newSaidas;
+
+      const combined = [...entradasState, ...saidasState];
+      combined.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+      setTransactions(combined);
+      setLoading(false);
+    };
+
+    return () => {
+      unsubEntradas();
+      unsubSaidas();
+    };
   }, [navigation]);
 
   const filteredTransactions = transactions.filter(transaction =>
-    transaction.description.toLowerCase().includes(searchText.toLowerCase()) ||
-    transaction.category.toLowerCase().includes(searchText.toLowerCase())
+    (transaction.description || '').toLowerCase().includes(searchText.toLowerCase()) ||
+    (transaction.category || '').toLowerCase().includes(searchText.toLowerCase())
   );
 
   const handleAddTransaction = () => {
     navigation.navigate('Operações', { type: 'Receita' });
   };
 
-  const handleDeleteTransaction = ( item ) => {
+  const handleDeleteTransaction = (item) => {
     Alert.alert(
       'Confirmar Exclusão',
       `Tem certeza que deseja excluir esta operação?`,
@@ -59,7 +84,7 @@ const RecipesScreen = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteDoc(doc(db, 'operations', item.id));
+              await deleteDoc(doc(db, 'operations', auth.currentUser.uid, item.collectionPath, item.opId));
               Alert.alert('Sucesso', 'Movimentação excluída com sucesso!');
             } catch (error) {
               console.error('Erro ao excluir movimentação:', error);
@@ -100,6 +125,7 @@ const RecipesScreen = ({ navigation }) => {
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar por descrição ou categoria..."
+            placeholderTextColor="#999"
             value={searchText}
             onChangeText={setSearchText}
           />
@@ -117,16 +143,16 @@ const RecipesScreen = ({ navigation }) => {
           </View>
         ) : (
           filteredTransactions.map((operations) => (
-            <View key={operations.id} style={styles.transactionItem}>
+            <View key={operations.opId} style={styles.transactionItem}>
               <View style={styles.transactionDetails}>
                 <Text style={styles.transactionCategory}>{operations.category}</Text>
                 <Text
                   style={[
                     styles.transactionAmount,
-                    { color: operations.type === 'entrada' ? '#2ECC71' : '#E74C3C' },
+                    { color: operations.type === 'Entradas' ? '#2ECC71' : '#E74C3C' },
                   ]}
                 >
-                  {operations.type === 'entrada' ? '+' : '-'}{' '}
+                  {operations.type === 'Entradas' ? '+' : '-'}{' '}
                   {formatCurrency((operations?.total?.toString?.() || ''))}
                 </Text>
                 <Text style={styles.transactionDescription}>{operations.description}</Text>
@@ -134,7 +160,11 @@ const RecipesScreen = ({ navigation }) => {
 
               <View style={styles.transactionActions}>
                 <TouchableOpacity
-                  onPress={() => navigation.navigate('Edit', { operations })}
+                  onPress={() =>
+                    navigation.navigate('Edit', {
+                      operations: operations, 
+                    })
+                  }
                   style={{ padding: 10 }}
                   accessibilityLabel="Editar movimentação"
                 >
