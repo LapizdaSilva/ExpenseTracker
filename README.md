@@ -21,24 +21,6 @@ ExpenseTracker is a React Native mobile application for managing personal financ
 - [React Navigation](https://reactnavigation.org/)
 - [PropTypes](https://reactjs.org/docs/typechecking-with-proptypes.html)
 
-##  Getting Started
-
-### 1. Clone the repo
-
-```bash
-git clone https://github.com/LapizdaSilva/ExpenseTracker
-cd ExpenseTracker
-```
-
-### 2. Install Dependencies
-```
-npm install
-```
-
-
-
-
-
 ---
 
 
