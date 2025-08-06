@@ -4,6 +4,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db, auth} from '../firebase';
 import PropTypes from 'prop-types';
 import DropdownComponent from '../operacoes/dropdown';
+import { useTheme } from '../operacoes/ThemeContext';
 
 const categoriaDesp = [
   { label: 'Alimentação', value: 'Alimentação' },
@@ -25,6 +26,7 @@ const categoriaRec = [
 ];
 
 export default function EditScreen({ route, navigation }) {
+  const { theme } = useTheme();
   const { operations } = route.params;
 
   const [category, setCategory] = useState(operations.category || '');
@@ -67,26 +69,42 @@ export default function EditScreen({ route, navigation }) {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
       contentContainerStyle={styles.scrollContent}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.title}>{'Editar Operação'}</Text>
+      <Text style={[styles.title, { color: theme.text }]}>{'Editar Operação'}</Text>
 
-      <View style={styles.toggleContainer}>
+      <View style={[styles.toggleContainer, { backgroundColor: theme.card }]}>
         <TouchableOpacity
-          style={[styles.toggleButton, operationType === 'Saídas' && styles.toggleButtonActive]}
+          style={[
+            styles.toggleButton, 
+            operationType === 'Saídas' && { backgroundColor: theme.red },
+            operationType !== 'Saídas' && { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.text }
+          ]}
           disabled
         >
-          <Text style={[styles.toggleButtonText, operationType === 'Saídas' && styles.toggleButtonTextActive]}>
+          <Text style={[
+            styles.toggleButtonText, 
+            { color: theme.text }, 
+            operationType === 'Saídas' && { color: '#FFF' }
+          ]}>
             Saídas
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.toggleButton, operationType === 'Entradas' && styles.toggleButtonActive]}
+          style={[
+            styles.toggleButton, 
+            operationType === 'Entradas' && { backgroundColor: theme.green },
+            operationType !== 'Entradas' && { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.text }
+          ]}
           disabled
         >
-          <Text style={[styles.toggleButtonText, operationType === 'Entradas' && styles.toggleButtonTextActive]}>
+          <Text style={[
+            styles.toggleButtonText, 
+            { color: theme.text }, 
+            operationType === 'Entradas' && { color: '#FFF' }
+          ]}>
             Entradas
           </Text>
         </TouchableOpacity>
@@ -94,26 +112,27 @@ export default function EditScreen({ route, navigation }) {
 
       <DropdownComponent
         placeholder="Categoria"
-        placeholderTextColor={"#999"}
+        placeholderTextColor={theme.text}
         data={operationType === 'Saídas' ? categoriaDesp : categoriaRec}
         value={category}
         onChange={setCategory}
         editable={!loading}
+        theme={theme}
       />
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text }]}
         placeholder="Descrição (Opcional)"
-        placeholderTextColor={"#999"}
+        placeholderTextColor={theme.text}
         value={description}
         onChangeText={setDescription}
         editable={!loading}
       />
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text }]}
         placeholder="Total *"
-        placeholderTextColor={"#999"}
+        placeholderTextColor={theme.text}
         keyboardType="numeric"
         value={total}
         onChangeText={(value) => setTotal(formatCurrency(value))}
@@ -164,7 +183,6 @@ EditScreen.propTypes = {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
     padding: 20,
     paddingTop: 50,
   },
@@ -172,12 +190,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 30,
-    color: '#333',
     textAlign: 'center',
   },
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#DDD',
     borderRadius: 8,
     marginBottom: 20,
   },
@@ -187,25 +203,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 8,
   },
-  toggleButtonActive: {
-    backgroundColor: '#6A0DAD',
-  },
   toggleButtonText: {
-    color: '#333',
     fontWeight: 'bold',
-  },
-  toggleButtonTextActive: {
-    color: '#FFF',
   },
   input: {
     width: '100%',
     height: 50,
-    backgroundColor: '#FFF',
     borderRadius: 8,
     paddingHorizontal: 15,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: 'grey',
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -235,6 +242,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   scrollContent: {
-  paddingBottom: 50,
+    paddingBottom: 50,
   },
 });

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Gestor",
-    "slug": "Gestor",
+    "name": "ExpenseTracker",
+    "slug": "ExpenseTracker",
     "version": "2.3.7",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,7 +13,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
@@ -33,9 +33,3 @@
     }
   }
 }
-
-// info da Versao:
-// x.y.z
-// x = Adiciona 1 a cada build
-// y = Tanto de commits feito nessa build
-// z = Tanto de telas q foram editadas

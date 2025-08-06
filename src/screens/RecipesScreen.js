@@ -4,8 +4,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import PropTypes from 'prop-types';
+import { useTheme } from '../operacoes/ThemeContext';
 
 const RecipesScreen = ({ navigation }) => {
+  const { theme } = useTheme();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
@@ -102,60 +104,60 @@ const RecipesScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <Text>Carregando...</Text>
+      <View style={[styles.container, styles.centered, { backgroundColor: theme.background }]}>
+        <Text style={{ color: theme.text }}>Carregando...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Histórico de Movimentações</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Histórico de Movimentações</Text>
           <TouchableOpacity onPress={handleAddTransaction} style={styles.addButton}>
-            <MaterialCommunityIcons name="plus" size={24} color="#6A0DAD" />
+            <MaterialCommunityIcons name="plus" size={24} color={theme.text} />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.searchContainer}>
+        <View style={[styles.searchContainer, { backgroundColor: theme.card, borderColor: theme.text }]}>
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: theme.text }]}
             placeholder="Buscar por descrição ou categoria..."
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.text}
             value={searchText}
             onChangeText={setSearchText}
           />
-          <MaterialCommunityIcons name="magnify" size={24} color="#888" style={styles.searchIcon} />
+          <MaterialCommunityIcons name="magnify" size={24} color={theme.text} style={styles.searchIcon} />
         </View>
 
         {filteredTransactions.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>
+            <Text style={[styles.emptyStateText, { color: theme.text }]}>
               {searchText ? 'Nenhuma movimentação encontrada' : 'Nenhuma movimentação cadastrada'}
             </Text>
-            <Text style={styles.emptyStateSubtext}>
+            <Text style={[styles.emptyStateSubtext, { color: theme.text }]}>
               {searchText ? 'Tente buscar por outro termo' : 'Adicione sua primeira movimentação!'}
             </Text>
           </View>
         ) : (
           filteredTransactions.map((operations) => (
-            <View key={operations.opId} style={styles.transactionItem}>
+            <View key={operations.opId} style={[styles.transactionItem, { backgroundColor: theme.card }]}>
               <View style={styles.transactionDetails}>
-                <Text style={styles.transactionCategory}>{operations.category}</Text>
+                <Text style={[styles.transactionCategory, { color: theme.text }]}>{operations.category}</Text>
                 <Text
                   style={[
                     styles.transactionAmount,
-                    { color: operations.type === 'Entradas' ? '#2ECC71' : '#E74C3C' },
+                    { color: operations.type === 'Entradas' ? theme.green : theme.red },
                   ]}
                 >
-                  {operations.type === 'Entradas' ? '+' : '-'}{' '}
+                  {operations.type === 'Entradas' ? '+' : ''}
                   {formatCurrency((operations?.total?.toString?.() || ''))}
                 </Text>
-                <Text style={styles.transactionDescription}>{operations.description}</Text>
+                <Text style={[styles.transactionDescription, { color: theme.text }]}>{operations.description}</Text>
               </View>
 
               <View style={styles.transactionActions}>
@@ -168,7 +170,7 @@ const RecipesScreen = ({ navigation }) => {
                   style={{ padding: 10 }}
                   accessibilityLabel="Editar movimentação"
                 >
-                  <MaterialCommunityIcons name="pencil" size={20} color="#6A0DAD" />
+                  <MaterialCommunityIcons name="pencil" size={20} color={theme.text} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -176,7 +178,7 @@ const RecipesScreen = ({ navigation }) => {
                   style={styles.deleteButton}
                   accessibilityLabel="Excluir movimentação"
                 >
-                  <MaterialCommunityIcons name="delete" size={20} color="#F44336" />
+                  <MaterialCommunityIcons name="delete" size={20} color={theme.red} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -196,7 +198,6 @@ RecipesScreen.propTypes = {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
     padding: 20,
     paddingTop: 50,
   },
@@ -213,7 +214,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
   },
   addButton: {
     padding: 10,
@@ -221,12 +221,10 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
     borderRadius: 8,
     marginBottom: 20,
     paddingHorizontal: 15,
     borderWidth: 1,
-    borderColor: '#DDD',
   },
   searchInput: {
     flex: 1,
@@ -242,17 +240,14 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#CCC',
     marginTop: 20,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#CCC',
     marginTop: 5,
   },
   transactionItem: {
     flexDirection: 'row',
-    backgroundColor: '#FFF',
     padding: 15,
     borderRadius: 8,
     marginBottom: 10,
@@ -267,7 +262,6 @@ const styles = StyleSheet.create({
   },
   transactionDescription: {
     fontSize: 14,
-    color: 'gray',
   },
   transactionAmount: {
     fontSize: 14,
@@ -277,7 +271,6 @@ const styles = StyleSheet.create({
   transactionCategory: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 5,
   },
   transactionActions: {

@@ -5,22 +5,24 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { collection, query, orderBy, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import PropTypes from 'prop-types';
+import { useTheme } from '../operacoes/ThemeContext';
 
-const TransactionItem = ({ item }) => (
-  <View style={styles.transactionItem}>
+
+const TransactionItem = ({ item, theme }) => (
+  <View style={[styles.transactionItem, { backgroundColor: theme.card }]}>
     <MaterialCommunityIcons
       name={item.type === 'Entradas' ? 'arrow-up' : 'arrow-down'}
       size={26}
-      color={item.type === 'Entradas' ? '#4CAF50' : '#F44336'}
+      color={item.type === 'Entradas' ? theme.green : theme.red}
     />
     <View style={styles.transactionDetails}>
-      <Text style={styles.categorytitle}>{item.category}</Text>
-      <Text style={styles.transactionValue}>{item.account}</Text>
-      <Text style={styles.transactionDescription}>{item.description || 'Sem descrição'}</Text>
+      <Text style={[styles.categorytitle, { color: theme.text }]}>{item.category}</Text>
+      <Text style={[styles.transactionValue, { color: theme.text }]}>{item.account}</Text>
+      <Text style={[styles.transactionDescription, { color: theme.text }]}>{item.description || 'Sem descrição'}</Text>
     </View>
     <Text style={[
       styles.transactionAmount,
-      { color: item.type === 'Entradas' ? '#4CAF50' : '#F44336' }
+      { color: item.type === 'Entradas' ? theme.green : theme.red }
     ]}>
       {item.type === 'Entradas' ? '+' : '-'}R$ {item.total.toFixed(2).replace('.', ',')}
     </Text>
@@ -28,6 +30,7 @@ const TransactionItem = ({ item }) => (
 );
 
 export default function HomeScreen({ navigation }) {
+  const { theme } = useTheme();
   const [operations, setOperations] = useState([]);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -136,20 +139,20 @@ export default function HomeScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={[styles.homeContainer, styles.centered]}>
-        <Text>Carregando...</Text>
+      <View style={[styles.homeContainer, styles.centered, { backgroundColor: theme.background }]}>
+        <Text style={{ color: theme.text }}>Carregando...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.homeContainer}>
+    <ScrollView style={[styles.homeContainer, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.balanceTitle}>Saldo</Text>
+          <Text style={[styles.balanceTitle, { color: theme.text }]}>Saldo</Text>
           <Text style={[
             styles.balanceValue,
-            { color: balance >= 0 ? '#4CAF50' : '#F44336' }   // AQUI
+            { color: balance >= 0 ? theme.green : theme.red }   // AQUI
           ]}>
             R$ {balance.toFixed(2).replace('.', ',')}
           </Text>
@@ -158,19 +161,19 @@ export default function HomeScreen({ navigation }) {
 
       {operations.length === 0 ? (
         <View style={styles.emptyState}>
-          <MaterialCommunityIcons name="wallet-outline" size={64} color="#CCC" />
-          <Text style={styles.emptyStateText}>Nenhuma operação encontrada</Text>
-          <Text style={styles.emptyStateSubtext}>Adicione sua primeira operação!</Text>
+          <MaterialCommunityIcons name="wallet-outline" size={64} color={theme.text} />
+          <Text style={[styles.emptyStateText, { color: theme.text }]}>Nenhuma operação encontrada</Text>
+          <Text style={[styles.emptyStateSubtext, { color: theme.text }]}>Adicione sua primeira operação!</Text>
         </View>
       ) : (
         Object.keys(groupedOperations).map(date => (
           <View key={date}>
-            <Text style={styles.sectionTitle}>{date}</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{date}</Text>
             <FlatList
               data={groupedOperations[date]}
               renderItem={({ item }) =>
                 <TouchableOpacity onPress={() => butaoclick(item)}>
-                   <TransactionItem item={item} />
+                   <TransactionItem item={item} theme={theme} />
                 </TouchableOpacity>
               }
               keyExtractor={item => item.opId}
@@ -197,12 +200,12 @@ TransactionItem.propTypes = {
       description: PropTypes.string,
       total: PropTypes.number.isRequired,
     }).isRequired,
+    theme: PropTypes.object.isRequired,
 };
 
 const styles = StyleSheet.create({
   homeContainer: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
     padding: 20,
   },
   centered: {
@@ -217,12 +220,10 @@ const styles = StyleSheet.create({
   },
   categorytitle: {
     fontSize: 20,
-    color: 'black',
 
   },
   balanceTitle: {
     fontSize: 20,
-    color: 'black',
     marginBottom: 7,
     marginTop: 30,
   },
@@ -236,14 +237,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: 'black',
     marginTop: 20,
     marginBottom: 10,
   },
   transactionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
     padding: 13,
     borderRadius: 8,
     marginBottom: 10,
@@ -260,11 +259,9 @@ const styles = StyleSheet.create({
   transactionValue: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#333',
   },
   transactionDescription: {
     fontSize: 14,
-    color: 'gray',
   },
   transactionAmount: {
     fontSize: 16,
@@ -277,12 +274,10 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#CCC',
     marginTop: 20,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#CCC',
     marginTop: 5,
   },
 });

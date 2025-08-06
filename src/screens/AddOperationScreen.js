@@ -5,6 +5,7 @@ import { collection, setDoc, doc, serverTimestamp, addDoc } from 'firebase/fires
 import { auth, db } from '../firebase';
 import PropTypes from 'prop-types';
 import DropdownComponent from '../operacoes/dropdown';  
+import { useTheme } from '../operacoes/ThemeContext';
 
 const categoriaDesp = [
   { label: 'Alimentação', value: 'Alimentação' },
@@ -26,8 +27,9 @@ const categoriaRec = [
 ];
 
 const AddOperationScreen = ({ navigation }) => {
+  const { theme } = useTheme();
   const [operationType, setOperationType] = useState('saidas');
-  const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState('');
   const [description, setDescription] = useState('');
   const [total, setTotal] = useState('');
   const [loading, setLoading] = useState(false);
@@ -109,56 +111,73 @@ const AddOperationScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>{'Adicionar Nova Operação'}</Text>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+      <Text style={[styles.title, { color: theme.text }]}>{'Adicionar Nova Operação'}</Text>
 
-      <View style={styles.toggleContainer}>
+      <View style={[styles.toggleContainer, { backgroundColor: theme.card }]}>
 
         <TouchableOpacity
-          style={[styles.toggleButton, operationType === 'saidas' && styles.toggleButtonActive]}
+          style={[
+            styles.toggleButton, 
+            operationType === 'saidas' && { backgroundColor: theme.red },
+            operationType !== 'saidas' && { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.text }
+          ]}
           onPress={() => setOperationType('saidas')}
           disabled={loading}
         >
-          <Text style={[styles.toggleButtonText, operationType === 'saidas' && styles.toggleButtonTextActive]}>Saídas</Text>
+          <Text style={[
+            styles.toggleButtonText, 
+            { color: theme.text },
+            operationType === 'saidas' && { color: '#FFF' }
+          ]}>Saídas</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={[styles.toggleButton, operationType === 'Entradas' && styles.toggleButtonActive]}
+          style={[
+            styles.toggleButton, 
+            operationType === 'Entradas' && { backgroundColor: theme.green },
+            operationType !== 'Entradas' && { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.text }
+          ]}
           onPress={() => setOperationType('Entradas')}
           disabled={loading}
         >
-          <Text style={[styles.toggleButtonText, operationType === 'Entradas' && styles.toggleButtonTextActive]}>Entradas</Text>
+          <Text style={[
+            styles.toggleButtonText, 
+            { color: theme.text },
+            operationType === 'Entradas' && { color: '#FFF' }
+          ]}>Entradas</Text>
         </TouchableOpacity>
       </View>
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text }]}
         placeholder="data (DD/MM/YYYY)"
-        placeholderTextColor={"#999"}
-        value={date}                             // AQUI DATA
+        placeholderTextColor={theme.text}
+        value={date}
         onChangeText={setDate}
         editable={!loading}
       />
       <DropdownComponent
         placeholder="Categoria"
-        placeholderTextColor={"#999"}
-        data={operationType === 'saidas' ? categoriaDesp : categoriaRec}   // AQUI CATEGORIA
+        placeholderTextColor={theme.text}
+        data={operationType === 'saidas' ? categoriaDesp : categoriaRec}
         value={category}
         onChange={setCategory}
         editable={!loading}
+        theme={theme}
       />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text }]}
         placeholder="Descrição (Opcional)"
-        placeholderTextColor={"#999"}
+        placeholderTextColor={theme.text}
         value={description} 
         onChangeText={setDescription}
         editable={!loading}
       />
       <TextInput 
-        style={styles.input} 
+        style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text }]} 
         placeholder="Total *" 
-        placeholderTextColor={"#999"}
+        placeholderTextColor={theme.text}
         keyboardType="numeric"
         value={total}
         onChangeText={(value) => setTotal(formatCurrency(value))}
@@ -195,7 +214,6 @@ AddOperationScreen.propTypes = {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
     padding: 20,
     paddingTop: 50,
   },
@@ -203,12 +221,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 30,
-    color: '#333',
     textAlign: 'center',
   },
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#DDD',
     borderRadius: 8,
     marginBottom: 20,
   },
@@ -218,25 +234,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 8,
   },
-  toggleButtonActive: {
-    backgroundColor: '#6A0DAD',
-  },
   toggleButtonText: {
-    color: '#333',
     fontWeight: 'bold',
-  },
-  toggleButtonTextActive: {
-    color: '#FFF',
   },
   input: {
     width: '100%',
     height: 50,
-    backgroundColor: '#FFF',
     borderRadius: 8,
     paddingHorizontal: 15,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: 'grey',
   },
   buttonContainer: {
     flexDirection: 'row',

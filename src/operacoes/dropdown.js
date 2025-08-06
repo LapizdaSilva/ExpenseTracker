@@ -2,14 +2,27 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import PropTypes from 'prop-types';
+import { useTheme } from './ThemeContext';
 
 const DropdownComponent = ({ data, value, onChange }) => {
   const [isFocus, setIsFocus] = useState(false);
+  const { theme } = useTheme();
 
   return (
     <View>
       <Dropdown
-        style={[styles.dropdown]}
+        style={[
+          styles.dropdown,
+          {
+            backgroundColor: theme.card,
+            borderColor: theme.text,
+            color: theme.text,
+          }
+        ]}
+        placeholderStyle={{ color: theme.text }}
+        selectedTextStyle={{ color: theme.text }}
+        itemTextStyle={{ color: theme.text }}
+        containerStyle={{ backgroundColor: theme.card }}
         data={data}
         labelField="label"
         valueField="value"
@@ -38,13 +51,10 @@ export default DropdownComponent;
 const styles = StyleSheet.create({
   dropdown: {
     height: 50,
-    borderColor: 'grey',
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 8,
-    backgroundColor: '#fff',
     marginBottom: 15,
-    color: '#333',
   },
   icon: {
     marginRight: 5,

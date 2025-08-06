@@ -4,9 +4,13 @@ import { TouchableOpacity} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
-import PropTypes from 'prop-types';
+import { PropTypes} from 'prop-types';
+import { useTheme } from '../operacoes/ThemeContext';
+
 
 const SettingsScreen = ({navigation}) => {
+  const { theme, toggleTheme, darkMode } = useTheme();
+
   const handleLogout = async () => {
     Alert.alert(
       'Sair',
@@ -28,16 +32,65 @@ const SettingsScreen = ({navigation}) => {
       ]
     );
   };
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Configurações</Text>
-      <Text>Conteúdo da tela de configurações</Text>
-      <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-        <MaterialCommunityIcons name="logout" size={24} color="#6A0DAD" />
-      </TouchableOpacity>
-    </View>
-  );
-};
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <Text style={[styles.title, { color: theme.text }]}>Configurações</Text>
+        
+        <View style={styles.themeOptionContainer}>
+          <TouchableOpacity
+            style={[styles.themeOptionButton, { backgroundColor: theme.card }]}
+            onPress={() => {
+              if (darkMode) toggleTheme();
+            }}
+          >
+            <View style={styles.wrap}>
+              <MaterialCommunityIcons
+                name="lightbulb-on"
+                size={20}
+                color={!darkMode ? "#facc15" : theme.text} 
+              />
+              <Text style={[styles.themeOptionButtonText, { color: theme.text }]}>
+                Tema Claro
+              </Text>
+            </View>
+            <MaterialCommunityIcons
+              name={!darkMode ? "check-circle" : "checkbox-blank-circle-outline"}
+              size={20}
+              color={!darkMode ? "#22c55e" : theme.text}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.themeOptionButton, { backgroundColor: theme.card }]}
+            onPress={() => {
+              if (!darkMode) toggleTheme(); 
+            }}
+          >
+            <View style={styles.wrap}>
+              <MaterialCommunityIcons
+                name="star-crescent"
+                size={20}
+                color={darkMode ? "#8b5cf6" : theme.text}
+              />
+              <Text style={[styles.themeOptionButtonText, { color: theme.text }]}>
+                Tema Escuro
+              </Text>
+            </View>
+            <MaterialCommunityIcons
+              name={darkMode ? "check-circle" : "checkbox-blank-circle-outline"}
+              size={20}
+              color={darkMode ? "#22c55e" : theme.text} 
+            />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <MaterialCommunityIcons name="logout" size={24} color={theme.text} />
+          <Text style={[styles.logoutButtonText, { color: theme.text }]}>Sair</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
 SettingsScreen.propTypes = {
   navigation: PropTypes.shape({
@@ -46,24 +99,51 @@ SettingsScreen.propTypes = {
 };
 
 const styles = StyleSheet.create({
-
-  addButton: {
-    padding: 10,
-  },
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    padding: 20,
+    paddingTop: 50, 
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 30,
+    textAlign: 'center',
+    alignItems: 'center',
   },
-  secret: {
-
-  }
+  themeOptionContainer: {
+    flexDirection: 'column',
+    marginBottom: 20,
+  },
+  themeOptionButton: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 10,
+    gap: 10,
+  },
+  themeOptionButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 20,
+  },
+  logoutButtonText: {
+    marginLeft: 5,
+    fontSize: 18,
+    alignItems: 'center',
+  },
+  wrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
 });
 
 export default SettingsScreen;

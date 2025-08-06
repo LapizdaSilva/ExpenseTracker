@@ -1,11 +1,13 @@
 import React from 'react';
 import { useState } from 'react';
 import { auth } from '../firebase'
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert} from 'react-native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import PropTypes from 'prop-types';
+import { useTheme } from '../operacoes/ThemeContext';
 
 const LoginScreen = ({ navigation }) => {
+  const { theme } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,12 +50,12 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Bem Vindo de Volta!</Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <Text style={[styles.title, { color: theme.text }]}>Bem Vindo de Volta!</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text }]}
         placeholder="Digite seu email"
-        placeholderTextColor={"#999"}
+        placeholderTextColor={theme.text}
         keyboardType="email-address"
         autoCapitalize="none"
         value={email}
@@ -61,13 +63,16 @@ const LoginScreen = ({ navigation }) => {
         editable={!loading}
       />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text }]}
         placeholder="Digite sua Senha"
-        secureTextEntry
-        placeholderTextColor={"#999"}
+        secureTextEntry={true}
+        placeholderTextColor={theme.text}
         value={password}
         onChangeText={setPassword}
         editable={!loading}
+        autoCapitalize="none"
+        textContentType="password"
+        importantForAutofill="no"
       />
       <TouchableOpacity 
         style={[styles.button, loading && styles.buttonDisabled]} 
@@ -79,7 +84,7 @@ const LoginScreen = ({ navigation }) => {
         </Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => navigation.navigate('Register')} disabled={loading}>
-        <Text style={styles.link}>Ainda não tem uma conta? Registre-se</Text>
+        <Text style={[styles.link, { color: theme.text }]}>Ainda não tem uma conta? Registre-se</Text>
       </TouchableOpacity>
     </View>
   );
@@ -96,24 +101,21 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
     padding: 20,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+    marginTop: 60,
     marginBottom: 30,
-    color: '#333',
   },
   input: {
     width: '100%',
     height: 50,
-    backgroundColor: '#FFF',
     borderRadius: 8,
     paddingHorizontal: 15,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: '#DDD',
   },
   button: {
     width: '100%',
@@ -134,9 +136,9 @@ const styles = StyleSheet.create({
   },
   link: {
     marginTop: 20,
-    color: '#6A0DAD',
     fontSize: 16,
   },
 });
 
 export default LoginScreen;
+

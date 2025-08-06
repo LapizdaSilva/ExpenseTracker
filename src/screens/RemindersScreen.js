@@ -4,8 +4,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, setDoc} from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import PropTypes from 'prop-types';
+import { useTheme } from '../operacoes/ThemeContext';
 
 const RemindersScreen = ({ navigation }) => {
+  const { theme } = useTheme();
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -139,46 +141,46 @@ const RemindersScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <Text>Carregando lembretes...</Text>
+      <View style={[styles.container, styles.centered, { backgroundColor: theme.background }]}>
+        <Text style={{ color: theme.text }}>Carregando lembretes...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Lembretes</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Lembretes</Text>
         <TouchableOpacity onPress={handleAddReminder} style={styles.addButton}>
-          <MaterialCommunityIcons name="plus" size={24} color="#6A0DAD" />
+          <MaterialCommunityIcons name="plus" size={24} color={theme.text} />
         </TouchableOpacity>
       </View>
 
       {reminders.length === 0 ? (
         <View style={styles.emptyState}>
-          <MaterialCommunityIcons name="bell-outline" size={64} color="#CCC" />
-          <Text style={styles.emptyStateText}>Nenhum lembrete cadastrado</Text>
-          <Text style={styles.emptyStateSubtext}>Adicione seu primeiro lembrete!</Text>
+          <MaterialCommunityIcons name="bell-outline" size={64} color={theme.text} />
+          <Text style={[styles.emptyStateText, { color: theme.text }]}>Nenhum lembrete cadastrado</Text>
+          <Text style={[styles.emptyStateSubtext, { color: theme.text }]}>Adicione seu primeiro lembrete!</Text>
         </View>
       ) : (
         reminders.map((reminder) => (
-          <View key={reminder.id} style={styles.reminderItem}>
-            <MaterialCommunityIcons name="clock-outline" size={24} color="#6A0DAD" />
+          <View key={reminder.id} style={[styles.reminderItem, { backgroundColor: theme.card }]}>
+            <MaterialCommunityIcons name="clock-outline" size={24} color={theme.text} />
             <View style={styles.reminderDetails}>
-              <Text style={styles.reminderTitle}>{reminder.title}</Text>
+              <Text style={[styles.reminderTitle, { color: theme.text }]}>{reminder.title}</Text>
               {reminder.description && (
-                <Text style={styles.reminderDescription}>{reminder.description}</Text>
+                <Text style={[styles.reminderDescription, { color: theme.text }]}>{reminder.description}</Text>
               )}
-              <Text style={styles.reminderDate}>{reminder.date}</Text>
+              <Text style={[styles.reminderDate, { color: theme.text }]}>{reminder.date}</Text>
             </View>
             <View style={styles.reminderActions}>
-              <Text style={styles.reminderTime}>{reminder.time}</Text>
+              <Text style={[styles.reminderTime, { color: theme.text }]}>{reminder.time}</Text>
               <View style={styles.actionButtons}>
                 <TouchableOpacity onPress={() => handleEditReminder(reminder)} style={styles.editButton}>
-                  <MaterialCommunityIcons name="pencil" size={16} color="#6A0DAD" />
+                  <MaterialCommunityIcons name="pencil" size={16} color={theme.text} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => handleDeleteReminder(reminder)} style={styles.deleteButton}>
-                  <MaterialCommunityIcons name="delete" size={16} color="#F44336" />
+                  <MaterialCommunityIcons name="delete" size={16} color={theme.red} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -193,39 +195,39 @@ const RemindersScreen = ({ navigation }) => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>
               {editingReminder ? 'Editar Lembrete' : 'Novo Lembrete'}
             </Text>
 
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.text }]}
               placeholder="Título do lembrete *"
-              placeholderTextColor={"#999"}
+              placeholderTextColor={theme.text}
               value={reminderTitle}
               onChangeText={setReminderTitle}
             />
 
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.text }]}
               placeholder="Descrição (opcional)"
-              placeholderTextColor={"#999"}
+              placeholderTextColor={theme.text}
               value={reminderDescription}
               onChangeText={setReminderDescription}
             />
 
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.text }]}
               placeholder="Data (DD/MM/AAAA) *"
-              placeholderTextColor={"#999"}
+              placeholderTextColor={theme.text}
               value={reminderDate}
               onChangeText={setReminderDate}
             />
 
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.text }]}
               placeholder="Horário (HH:MM) *"
-              placeholderTextColor={"#999"}
+              placeholderTextColor={theme.text}
               value={reminderTime}
               onChangeText={setReminderTime}
             />
@@ -260,7 +262,6 @@ RemindersScreen.propTypes = {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
     padding: 20,
     paddingTop: 50,
   },
@@ -277,7 +278,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
   },
   addButton: {
     padding: 10,
@@ -289,18 +289,15 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#CCC',
     marginTop: 20,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#CCC',
     marginTop: 5,
   },
   reminderItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
     padding: 15,
     borderRadius: 8,
     marginBottom: 10,
@@ -317,17 +314,14 @@ const styles = StyleSheet.create({
   reminderTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 3,
   },
   reminderDescription: {
     fontSize: 14,
-    color: 'gray',
     marginBottom: 3,
   },
   reminderDate: {
     fontSize: 12,
-    color: '#6A0DAD',
   },
   reminderActions: {
     alignItems: 'flex-end',
@@ -335,7 +329,6 @@ const styles = StyleSheet.create({
   reminderTime: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 5,
   },
   actionButtons: {
@@ -355,7 +348,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#FFF',
     borderRadius: 10,
     padding: 20,
     width: '90%',
@@ -366,11 +358,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
-    color: '#333',
   },
   modalInput: {
     borderWidth: 1,
-    borderColor: 'Black',
     borderRadius: 8,
     padding: 15,
     marginBottom: 15,

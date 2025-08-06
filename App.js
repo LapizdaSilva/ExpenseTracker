@@ -12,11 +12,14 @@ import RecipesScreen from './src/screens/RecipesScreen';
 import RemindersScreen from './src/screens/RemindersScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import EditScreen from './src/screens/EditScreen.js';
+import { ThemeProvider, useTheme } from './src/operacoes/ThemeContext.js';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function HomeTabs() {
+  const { theme } = useTheme();
+  
   return (
     <Tab.Navigator
       initialRouteName="Home"
@@ -38,7 +41,11 @@ function HomeTabs() {
         },
 
         tabBarActiveTintColor: '#6A0DAD',
-        tabBarInactiveTintColor: 'gray',
+        tabBarInactiveTintColor: theme.text,
+        tabBarStyle: {
+          backgroundColor: theme.card,
+          borderTopColor: theme.text,
+        },
         headerShown: false,
       })}
     >
@@ -53,13 +60,15 @@ function HomeTabs() {
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Home" component={HomeTabs} options={{ headerShown: false }} />
-        <Stack.Screen name="Edit" component={EditScreen} options={{ title: 'Editar Operação'}} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <ThemeProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Login">
+          <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Home" component={HomeTabs} options={{ headerShown: false }} />
+          <Stack.Screen name="Edit" component={EditScreen} options={{ title: 'Editar Operação'}} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </ThemeProvider>
   );
 }
