@@ -13,13 +13,14 @@ import RemindersScreen from './src/screens/RemindersScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import EditScreen from './src/screens/EditScreen.js';
 import { ThemeProvider, useTheme } from './src/operacoes/ThemeContext.js';
+import { AuthProvider, useAuth } from './src/operacoes/AuthContext.js';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function HomeTabs() {
   const { theme } = useTheme();
-  
+
   return (
     <Tab.Navigator
       initialRouteName="Home"
@@ -39,7 +40,6 @@ function HomeTabs() {
           }
           return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
         },
-
         tabBarActiveTintColor: '#6A0DAD',
         tabBarInactiveTintColor: theme.text,
         tabBarStyle: {
@@ -58,17 +58,38 @@ function HomeTabs() {
   );
 }
 
+function AppNavigator() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return null;
+  }
+
+  return (
+    <Stack.Navigator>
+      {user ? (
+        <>
+          <Stack.Screen name="Home" component={HomeTabs} options={{ headerShown: false }} />
+          <Stack.Screen name="Edit" component={EditScreen} options={{ title: 'Editar Operação' }} />
+        </>
+      ) : (
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
+        </>
+      )}
+    </Stack.Navigator>
+  );
+}
+
 export default function App() {
   return (
     <ThemeProvider>
-      <NavigationContainer>
-        <Stack.Navigator initialRouteName="Login">
-          <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="Home" component={HomeTabs} options={{ headerShown: false }} />
-          <Stack.Screen name="Edit" component={EditScreen} options={{ title: 'Editar Operação'}} />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <AuthProvider>
+        <NavigationContainer>
+          <AppNavigator />
+        </NavigationContainer>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

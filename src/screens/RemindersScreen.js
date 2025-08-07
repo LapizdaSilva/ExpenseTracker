@@ -2,9 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Modal } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, setDoc} from 'firebase/firestore';
+import * as Notifications from 'expo-notifications'
 import { auth, db } from '../firebase';
 import PropTypes from 'prop-types';
 import { useTheme } from '../operacoes/ThemeContext';
+
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
+Notifications.scheduleNotificationAsync({
+  content: {
+    title: 'Look at that notification',
+    body: "I'm so proud of myself!",
+  },
+  trigger: null,
+});
+
 
 const RemindersScreen = ({ navigation }) => {
   const { theme } = useTheme();

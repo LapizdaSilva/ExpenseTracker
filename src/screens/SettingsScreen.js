@@ -8,7 +8,7 @@ import { PropTypes} from 'prop-types';
 import { useTheme } from '../operacoes/ThemeContext';
 
 
-const SettingsScreen = ({navigation}) => {
+const SettingsScreen = () => {
   const { theme, toggleTheme, darkMode } = useTheme();
 
   const handleLogout = async () => {
@@ -22,7 +22,6 @@ const SettingsScreen = ({navigation}) => {
           onPress: async () => {
             try {
               await signOut(auth);
-              navigation.navigate('Login');
             } catch (error) {
               console.error('Erro ao fazer logout:', error);
               Alert.alert('Erro', 'Erro ao sair da conta');

@@ -21,7 +21,6 @@ const LoginScreen = ({ navigation }) => {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigation.navigate('Home');
     } catch (error) {
       console.error('Erro no login:', error);
       let errorMessage = 'Erro ao fazer login';
