@@ -14,6 +14,7 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import EditScreen from './src/screens/EditScreen.js';
 import { ThemeProvider, useTheme } from './src/operacoes/ThemeContext.js';
 import { AuthProvider, useAuth } from './src/operacoes/AuthContext.js';
+import { View, Text } from 'react-native';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -62,7 +63,9 @@ function AppNavigator() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return null;
+    <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}> 
+      <Text>Carregando.........</Text>
+    </View>
   }
 
   return (

@@ -17,15 +17,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-Notifications.scheduleNotificationAsync({
-  content: {
-    title: 'Look at that notification',
-    body: "I'm so proud of myself!",
-  },
-  trigger: null,
-});
-
-
 const RemindersScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const [reminders, setReminders] = useState([]);
