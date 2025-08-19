@@ -2,6 +2,7 @@ import React from 'react';
 import { useState } from 'react';
 import { auth } from '../firebase'
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import PropTypes from 'prop-types';
 import { useTheme } from '../operacoes/ThemeContext';
@@ -20,29 +21,32 @@ const LoginScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      await AsyncStorage.setItem("userEmail", user.email);
+      navigation.navigate("Home");
     } catch (error) {
-      console.error('Erro no login:', error);
-      let errorMessage = 'Erro ao fazer login';
+      console.error("Erro no login:", error);
+      let errorMessage = "Erro ao fazer login";
       
       switch (error.code) {
-        case 'auth/user-not-found':
-          errorMessage = 'Usuário não encontrado';
+        case "auth/user-not-found":
+          errorMessage = "Usuário não encontrado";
           break;
-        case 'auth/wrong-password':
-          errorMessage = 'Senha incorreta';
+        case "auth/wrong-password":
+          errorMessage = "Senha incorreta";
           break;
-        case 'auth/invalid-email':
-          errorMessage = 'Email inválido';
+        case "auth/invalid-email":
+          errorMessage = "Email inválido";
           break;
-        case 'auth/too-many-requests':
-          errorMessage = 'Muitas tentativas. Tente novamente mais tarde';
+        case "auth/too-many-requests":
+          errorMessage = "Muitas tentativas. Tente novamente mais tarde";
           break;
         default:
-          errorMessage = 'Erro ao fazer login. Verifique suas credenciais';
+          errorMessage = "Erro ao fazer login. Verifique suas credenciais";
       }
       
-      Alert.alert('Erro', errorMessage);
+      Alert.alert("Erro", errorMessage);
     } finally {
       setLoading(false);
     }

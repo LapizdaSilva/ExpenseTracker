@@ -4,6 +4,7 @@ import { TouchableOpacity} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PropTypes} from 'prop-types';
 import { useTheme } from '../operacoes/ThemeContext';
 
@@ -22,6 +23,7 @@ const SettingsScreen = () => {
           onPress: async () => {
             try {
               await signOut(auth);
+              await AsyncStorage.removeItem("userEmail");
             } catch (error) {
               console.error('Erro ao fazer logout:', error);
               Alert.alert('Erro', 'Erro ao sair da conta');

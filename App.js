@@ -63,13 +63,15 @@ function AppNavigator() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}> 
-      <Text>Carregando.........</Text>
-    </View>
+    return (
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+        <Text>Carregando.........</Text>
+      </View>
+    );
   }
 
   return (
-    <Stack.Navigator>
+    <Stack.Navigator initialRouteName="Login">
       {user ? (
         <>
           <Stack.Screen name="Home" component={HomeTabs} options={{ headerShown: false }} />
