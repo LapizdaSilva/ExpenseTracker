@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import './src/firebase.js';
+import './src/firebase.js'; 
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -15,6 +15,7 @@ import EditScreen from './src/screens/EditScreen.js';
 import { ThemeProvider, useTheme } from './src/operacoes/ThemeContext.js';
 import { AuthProvider, useAuth } from './src/operacoes/AuthContext.js';
 import { View, Text } from 'react-native';
+import { auth } from './src/firebase'; 
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -88,6 +89,25 @@ function AppNavigator() {
 }
 
 export default function App() {
+  const [firebaseInitialized, setFirebaseInitialized] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(() => {
+      setFirebaseInitialized(true);
+      unsubscribe();
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (!firebaseInitialized) {
+    return (
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+        <Text>Inicializando Firebase...</Text>
+      </View>
+    );
+  }
+
   return (
     <ThemeProvider>
       <AuthProvider>
@@ -98,3 +118,4 @@ export default function App() {
     </ThemeProvider>
   );
 }
+
