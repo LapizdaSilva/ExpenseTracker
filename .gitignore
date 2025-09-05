@@ -4,7 +4,7 @@
 node_modules/
 
 # Firebase
-src/firebase.js
+
 
 # Expo
 .expo/
@@ -18,7 +18,7 @@ expo-env.d.ts
 *.jks
 *.p8
 *.p12
-*.key
+*.keyj
 *.mobileprovision
 
 # Metro
