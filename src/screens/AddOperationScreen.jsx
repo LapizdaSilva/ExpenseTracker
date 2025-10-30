@@ -1,8 +1,6 @@
-import React from 'react';
-import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert} from 'react-native';
-import { collection, setDoc, doc, serverTimestamp, addDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { supabase } from '../../supabase';
 import PropTypes from 'prop-types';
 import DropdownComponent from '../operacoes/dropdown';  
 import { useTheme } from '../operacoes/ThemeContext';
@@ -34,22 +32,15 @@ const AddOperationScreen = ({ navigation }) => {
   const [total, setTotal] = useState('');
   const [loading, setLoading] = useState(false);
   const [category, setCategory] = useState('');
-  const [opId, setOpId] = useState('');
 
-  React.useEffect(() => {
-    const generateId = () => {
-      return Math.random().toString(12).substr(2, 9)
-    };
-    setOpId(generateId());
-  }, []);
-
-  const handleSaveOperation = async () => {
+  const handleSaveOperation = async () => {    
     if (!date || !total || !category) {
       Alert.alert('Erro', 'Por favor, preencha os campos obrigatórios: Data, Categoria e Total');
       return;
     }
 
-    if (!auth.currentUser) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       Alert.alert('Erro', 'Usuário não autenticado');
       return;
     }
@@ -62,27 +53,21 @@ const AddOperationScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const operationData = {
-        type: operationType,
-        date: date,
-        category: category,
-        description: description || '',
-        total: totalValue,
-        userId: auth.currentUser.uid,
-        createdAt: serverTimestamp(),
-        opid: opId,
-      };
+      const formattedDate = new Date(date.split('/').reverse().join('-')).toISOString();
 
-      const userId = auth.currentUser.uid;
-      const tipo = operationType.toLowerCase();
+      const { error: insertError } = await supabase.from('operations').insert([
+        {
+          user_id: user.id,
+          type: operationType,
+          category,
+          description: description || '',
+          total: totalValue,
+          date: formattedDate,
+          created_at: new Date().toISOString(),
+        },
+      ]);
 
-      await setDoc(doc(db, 'operations', userId), {
-        email: auth.currentUser.email
-      }, { merge: true });
-
-      await addDoc(collection(db, 'operations', userId, tipo), {
-        ...operationData
-      });
+      if (insertError) throw insertError;
 
       Alert.alert('Sucesso', 'Operação salva com sucesso!', [
         { text: 'OK', onPress: () => {
@@ -115,7 +100,6 @@ const AddOperationScreen = ({ navigation }) => {
       <Text style={[styles.title, { color: theme.text }]}>{'Adicionar Nova Operação'}</Text>
 
       <View style={[styles.toggleContainer, { backgroundColor: theme.card }]}>
-
         <TouchableOpacity
           style={[
             styles.toggleButton, 
@@ -183,6 +167,7 @@ const AddOperationScreen = ({ navigation }) => {
         onChangeText={(value) => setTotal(formatCurrency(value))}
         editable={!loading}
       />
+
       <View style={styles.buttonContainer}>
         <TouchableOpacity 
           style={[styles.actionButton, styles.cancelButton]} 
@@ -212,79 +197,18 @@ AddOperationScreen.propTypes = {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    paddingTop: 50,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  toggleContainer: {
-    flexDirection: 'row',
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  toggleButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  toggleButtonText: {
-    fontWeight: 'bold',
-  },
-  input: {
-    width: '100%',
-    height: 50,
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    borderWidth: 1,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 30,
-  },
-  actionButton: {
-    flex: 1,
-    height: 50,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: '#CCC',
-  },
-  saveButton: {
-    backgroundColor: '#6A0DAD',
-  },
-  buttonDisabled: {
-    backgroundColor: '#9A9A9A',
-  },
-  buttonText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  arrow:{
-    position: 'absolute',
-    right: 15,
-    top: 15,
-    color: '#333',
-  },
-  category: {
-    width: '100%',
-    marginBottom: 15,
-    marginTop: 15,
-    opacity: 0.5,
-    bordercolor: 'grey',
-  }
+  container: { flex: 1, padding: 20, paddingTop: 50 },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 30, textAlign: 'center' },
+  toggleContainer: { flexDirection: 'row', borderRadius: 8, marginBottom: 20 },
+  toggleButton: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8, marginLeft: 10 },
+  toggleButtonText: { fontWeight: 'bold' },
+  input: { width: '100%', height: 50, borderRadius: 8, paddingHorizontal: 15, marginBottom: 15, borderWidth: 1 },
+  buttonContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 30 },
+  actionButton: { flex: 1, height: 50, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginHorizontal: 5 },
+  cancelButton: { backgroundColor: '#CCC' },
+  saveButton: { backgroundColor: '#6A0DAD' },
+  buttonDisabled: { backgroundColor: '#9A9A9A' },
+  buttonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
 });
 
 export default AddOperationScreen;

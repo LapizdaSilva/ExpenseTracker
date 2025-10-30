@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db, auth} from '../firebase';
+import { supabase } from '../../supabase';
 import PropTypes from 'prop-types';
 import DropdownComponent from '../operacoes/dropdown';
 import { useTheme } from '../operacoes/ThemeContext';
@@ -45,12 +44,25 @@ export default function EditScreen({ route, navigation }) {
 
     try {
       setLoading(true);
-      const ref = doc(db, 'operations', auth.currentUser.uid, operations.collectionPath, operations.opId);
-      await updateDoc(ref, {
-        category,
-        description,
-        total: parseFloat(total.replace(',', '.')),
-      });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert('Erro', 'Usuário não autenticado');
+        setLoading(false);
+        return;
+      }
+      const uid = user.id;
+
+      const { error } = await supabase
+        .from('operations')
+        .update({
+          category,
+          description,
+          total: parseFloat(total.replace(',', '.')),
+        })
+        .eq('opid', operations.opid)
+        .eq('user_id', uid);
+
+      if (error) throw error;
 
       Alert.alert('Sucesso', 'Operação atualizada com sucesso!', [
         { text: 'OK', onPress: () => navigation.navigate('Home') },
@@ -169,7 +181,7 @@ EditScreen.propTypes = {
   route: PropTypes.shape({
     params: PropTypes.shape({
       operations: PropTypes.shape({
-        opId: PropTypes.string.isRequired,
+        opid: PropTypes.string.isRequired,
         category: PropTypes.string,
         description: PropTypes.string,
         total: PropTypes.number.isRequired,
