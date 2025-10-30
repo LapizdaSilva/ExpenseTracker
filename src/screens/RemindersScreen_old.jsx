@@ -28,7 +28,6 @@ const RemindersScreen = ({ navigation }) => {
   const [reminderDate, setReminderDate] = useState('');
   const [reminderTime, setReminderTime] = useState('');
 
-  // Buscar lembretes do Supabase
   const fetchReminders = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();

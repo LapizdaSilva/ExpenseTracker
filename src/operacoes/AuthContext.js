@@ -1,5 +1,4 @@
 import React, { createContext, useEffect, useState, useContext } from 'react';
-
 import { supabase } from '../../supabase';
 import { PropTypes } from 'prop-types';
 
@@ -10,12 +9,14 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
       setLoading(false);
     });
 
-    return () => authListener.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
