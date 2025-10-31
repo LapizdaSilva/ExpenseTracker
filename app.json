@@ -13,7 +13,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.lapisdasilva.Gestor"
     },
     "android": {
       "adaptiveIcon": {
@@ -32,6 +33,7 @@
       }
     },
     "plugins": [
+      "expo-notifications",
       "expo-font"
     ]
   }
