@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "ExpenseTracker",
-    "slug": "Gestor",
+    "name": "Credo",
+    "slug": "ExpenseTracker",
     "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

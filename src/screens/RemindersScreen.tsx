@@ -200,6 +200,21 @@ const RemindersScreen = ({ navigation }) => {
       return;
     }
 
+    // Converte data/hora para um objeto Date real
+    const [day, month, year] = reminderDate.split('/').map(Number);
+    const [hour, minute] = reminderTime.split(':').map(Number);
+    const triggerDate = new Date(year, month - 1, day, hour, minute);
+
+    if (isNaN(triggerDate.getTime())) {
+      Alert.alert('Erro', 'Data ou hora inválidas.');
+      return;
+    }
+
+    if (triggerDate <= new Date()) {
+      Alert.alert('Erro', 'Escolha uma data e hora no futuro.');
+      return;
+    }
+
     const reminderData = {
       title: reminderTitle.trim(),
       description: reminderDescription.trim(),
@@ -210,50 +225,47 @@ const RemindersScreen = ({ navigation }) => {
     };
 
     try {
+      let reminderId;
       if (editingReminder) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('reminders')
           .update(reminderData)
-          .eq('id', editingReminder.id);
+          .eq('id', editingReminder.id)
+          .select()
+          .single();
+
         if (error) throw error;
+        reminderId = data.id;
         Alert.alert('Sucesso', 'Lembrete atualizado!');
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('reminders')
-          .insert([{ ...reminderData, created_at: new Date().toISOString() }]);
+          .insert([{ ...reminderData, created_at: new Date().toISOString() }])
+          .select()
+          .single();
+
         if (error) throw error;
+        reminderId = data.id;
         Alert.alert('Sucesso', 'Lembrete adicionado!');
       }
 
-      // Agendar notificação local
-      try {
-        const [day, month, year] = reminderDate.split('/').map(Number);
-        const [hour, minute] = reminderTime.split(':').map(Number);
-        const triggerDate = new Date(year, month - 1, day, hour, minute);
-
-        if (triggerDate <= new Date()) {
-          Alert.alert('Erro', 'Escolha uma data e hora no futuro.');
-          return;
-        }
-
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: reminderTitle,
-            body: reminderDescription || 'Você tem um lembrete!',
-          },
-          trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DATE,
-            date: triggerDate,
+      const notificationId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: reminderTitle,
+          body: reminderDescription || 'Você tem um lembrete!',
+          sound: true,
+          priority: Notifications.AndroidNotificationPriority.HIGH,
         },
-        });
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: triggerDate,
+        } as Notifications.DateTriggerInput, 
+      });
 
-        // Envia notificação push (remota)
-        if (expoPushToken) {
-          await sendPushNotification(expoPushToken, reminderTitle, reminderDescription || 'Você tem um lembrete!');
-        }
-      } catch (e) {
-        console.error('Erro ao agendar notificação:', e);
-      }
+      await supabase
+        .from('reminders')
+        .update({ notification_id: notificationId })
+        .eq('id', reminderId);
 
       setModalVisible(false);
       fetchReminders();
@@ -263,27 +275,34 @@ const RemindersScreen = ({ navigation }) => {
     }
   };
 
+
   const handleDeleteReminder = (reminder) => {
     Alert.alert('Confirmar exclusão', `Excluir o lembrete "${reminder.title}"?`, [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Excluir',
         style: 'destructive',
-        onPress: async () => {
-          try {
-            const { error } = await supabase
-              .from('reminders')
-              .delete()
-              .eq('id', reminder.id);
-            if (error) throw error;
-            fetchReminders();
-          } catch (error) {
-            console.error('Erro ao excluir lembrete:', error);
-          }
+          onPress: async () => {
+            try {
+              // Cancela a notificação agendada (se existir)
+              if (reminder.notification_id) {
+                await Notifications.cancelScheduledNotificationAsync(reminder.notification_id);
+              }
+
+              const { error } = await supabase
+                .from('reminders')
+                .delete()
+                .eq('id', reminder.id);
+
+              if (error) throw error;
+              fetchReminders();
+            } catch (error) {
+              console.error('Erro ao excluir lembrete:', error);
+            }
+          },
         },
-      },
     ]);
-  };
+  }
 
   const toggleCalendar = () => {
     const newValue = calendarVisible ? 0 : 1;
