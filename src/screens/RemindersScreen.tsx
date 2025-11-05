@@ -18,37 +18,20 @@ import { useTheme } from '../operacoes/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../supabase';
 import * as Device from 'expo-device';
-import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Easing } from 'react-native-reanimated';
 
-type NotificationBehavior = {
-  shouldPlaySound: boolean;
-  shouldSetBadge: boolean;
-  shouldShowAlert: boolean;
-  shouldShowBanner: boolean; 
-  shouldShowList: boolean; 
-};
-
-const handleNotification = async (): Promise<NotificationBehavior> => {
-  return {
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowAlert: true,
-    shouldShowBanner: true, 
-    shouldShowList: true,   
-  };
-};
-
+// ✅ Handler atualizado — compatível com SDK 51+
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
+  handleNotification: async (): Promise<Notifications.NotificationBehavior> => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
     shouldShowBanner: true,
-    shouldShowList: true,   
+    shouldShowList: true,
   }),
 });
+
 
 async function registerForPushNotificationsAsync() {
   if (Platform.OS === 'android') {
@@ -60,51 +43,57 @@ async function registerForPushNotificationsAsync() {
     });
   }
 
-  if (Device.isDevice) {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== 'granted') {
-      Alert.alert('Permissão negada', 'Você precisa permitir notificações para usar este recurso.');
-      return;
-    }
+  if (!Device.isDevice) {
+    Alert.alert('Erro', 'Notificações funcionam apenas em dispositivos físicos.');
+    return;
+  }
 
-    const projectId =
-      Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-    if (!projectId) {
-      Alert.alert('Erro', 'Project ID do Expo não encontrado');
-      return;
-    }
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
 
-    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    console.log('Expo Push Token:', token);
-    return token;
-  } else {
-    Alert.alert('Erro', 'Use um dispositivo físico para notificações push.');
+  if (finalStatus !== 'granted') {
+    Alert.alert('Permissão negada', 'Você precisa permitir notificações para usar este recurso.');
   }
 }
 
-async function sendPushNotification(expoPushToken, title, body) {
-  const message = {
-    to: expoPushToken,
-    sound: 'default',
-    title,
-    body,
-    data: { type: 'reminder' },
-  };
+async function scheduleLocalNotification(reminderDate: string, reminderTime: string, title: string, body: string) {
+  try {
+    const [day, month, year] = reminderDate.split('/').map(Number);
+    const [hour, minute] = reminderTime.split(':').map(Number);
+    const triggerDate = new Date(year, month - 1, day, hour, minute);
 
-  await fetch('https://exp.host/--/api/v2/push/send', {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Accept-encoding': 'gzip, deflate',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(message),
-  });
+    if (isNaN(triggerDate.getTime())) {
+      throw new Error('Data ou hora inválidas.');
+    }
+
+    const now = new Date();
+    const diffInSeconds = Math.floor((triggerDate.getTime() - now.getTime()) / 1000);
+
+    if (diffInSeconds <= 0) {
+      throw new Error('Escolha uma data e hora no futuro.');
+    }
+
+    const notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        sound: true,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+      },
+      trigger: { seconds: diffInSeconds, repeats: false } as Notifications.TimeIntervalTriggerInput,
+    });
+
+    console.log('🔔 Notificação agendada com ID:', notificationId);
+    return notificationId;
+  } catch (err) {
+    console.error('Erro ao agendar notificação:', err);
+    Alert.alert('Erro', (err as Error).message);
+    return null;
+  }
 }
 
 const RemindersScreen = ({ navigation }) => {
@@ -121,18 +110,11 @@ const RemindersScreen = ({ navigation }) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [calendarVisible, setCalendarVisible] = useState(true);
   const calendarHeight = useState(new Animated.Value(1))[0];
-  const [expoPushToken, setExpoPushToken] = useState('');
 
   const filters = ['Todos', 'Ativos', 'Vencidos'];
 
   useEffect(() => {
-    (async () => {
-      const token = await registerForPushNotificationsAsync();
-      if (token) {
-        setExpoPushToken(token);
-      }
-    })();
-
+    registerForPushNotificationsAsync();
     fetchReminders();
 
     const notificationListener = Notifications.addNotificationReceivedListener((notification) => {
@@ -140,7 +122,7 @@ const RemindersScreen = ({ navigation }) => {
     });
 
     const responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
-      console.log('Interação com notificação:', response);
+      console.log('Usuário interagiu com notificação:', response);
     });
 
     return () => {
@@ -200,72 +182,44 @@ const RemindersScreen = ({ navigation }) => {
       return;
     }
 
-    // Converte data/hora para um objeto Date real
-    const [day, month, year] = reminderDate.split('/').map(Number);
-    const [hour, minute] = reminderTime.split(':').map(Number);
-    const triggerDate = new Date(year, month - 1, day, hour, minute);
-
-    if (isNaN(triggerDate.getTime())) {
-      Alert.alert('Erro', 'Data ou hora inválidas.');
-      return;
-    }
-
-    if (triggerDate <= new Date()) {
-      Alert.alert('Erro', 'Escolha uma data e hora no futuro.');
-      return;
-    }
-
-    const reminderData = {
-      title: reminderTitle.trim(),
-      description: reminderDescription.trim(),
-      date: reminderDate.trim(),
-      time: reminderTime.trim(),
-      user_id: user.id,
-      updated_at: new Date().toISOString(),
-    };
-
     try {
       let reminderId;
+      let notificationId = null;
+
+      // Agenda notificação local
+      notificationId = await scheduleLocalNotification(
+        reminderDate,
+        reminderTime,
+        reminderTitle,
+        reminderDescription || 'Você tem um lembrete!'
+      );
+
+      if (!notificationId) return;
+
+      const reminderData = {
+        title: reminderTitle.trim(),
+        description: reminderDescription.trim(),
+        date: reminderDate.trim(),
+        time: reminderTime.trim(),
+        user_id: user.id,
+        updated_at: new Date().toISOString(),
+        notification_id: notificationId,
+      };
+
       if (editingReminder) {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('reminders')
           .update(reminderData)
-          .eq('id', editingReminder.id)
-          .select()
-          .single();
-
+          .eq('id', editingReminder.id);
         if (error) throw error;
-        reminderId = data.id;
         Alert.alert('Sucesso', 'Lembrete atualizado!');
       } else {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('reminders')
-          .insert([{ ...reminderData, created_at: new Date().toISOString() }])
-          .select()
-          .single();
-
+          .insert([{ ...reminderData, created_at: new Date().toISOString() }]);
         if (error) throw error;
-        reminderId = data.id;
         Alert.alert('Sucesso', 'Lembrete adicionado!');
       }
-
-      const notificationId = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: reminderTitle,
-          body: reminderDescription || 'Você tem um lembrete!',
-          sound: true,
-          priority: Notifications.AndroidNotificationPriority.HIGH,
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: triggerDate,
-        } as Notifications.DateTriggerInput, 
-      });
-
-      await supabase
-        .from('reminders')
-        .update({ notification_id: notificationId })
-        .eq('id', reminderId);
 
       setModalVisible(false);
       fetchReminders();
@@ -275,34 +229,31 @@ const RemindersScreen = ({ navigation }) => {
     }
   };
 
-
   const handleDeleteReminder = (reminder) => {
     Alert.alert('Confirmar exclusão', `Excluir o lembrete "${reminder.title}"?`, [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Excluir',
         style: 'destructive',
-          onPress: async () => {
-            try {
-              // Cancela a notificação agendada (se existir)
-              if (reminder.notification_id) {
-                await Notifications.cancelScheduledNotificationAsync(reminder.notification_id);
-              }
-
-              const { error } = await supabase
-                .from('reminders')
-                .delete()
-                .eq('id', reminder.id);
-
-              if (error) throw error;
-              fetchReminders();
-            } catch (error) {
-              console.error('Erro ao excluir lembrete:', error);
+        onPress: async () => {
+          try {
+            if (reminder.notification_id) {
+              await Notifications.cancelScheduledNotificationAsync(reminder.notification_id);
             }
-          },
+
+            const { error } = await supabase
+              .from('reminders')
+              .delete()
+              .eq('id', reminder.id);
+            if (error) throw error;
+            fetchReminders();
+          } catch (error) {
+            console.error('Erro ao excluir lembrete:', error);
+          }
         },
+      },
     ]);
-  }
+  };
 
   const toggleCalendar = () => {
     const newValue = calendarVisible ? 0 : 1;
@@ -350,7 +301,6 @@ const RemindersScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Calendário animado */}
       <Animated.View
         style={{
           overflow: 'hidden',
@@ -464,7 +414,6 @@ const RemindersScreen = ({ navigation }) => {
         )}
       </ScrollView>
 
-      {/* Botão flutuante */}
       <TouchableOpacity
         onPress={handleAddReminder}
         style={[styles.floatingButton, { backgroundColor: theme.selected }]}
@@ -558,24 +507,13 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
+    elevation: 4,
   },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    padding: 20,
-  },
-  modalContainer: { width: '100%', borderRadius: 15, padding: 20, elevation: 4 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
-  input: { borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 10, fontSize: 16 },
+  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContainer: { width: '90%', borderRadius: 12, padding: 20 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
+  input: { borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 10 },
   modalActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   modalButton: { fontSize: 16, fontWeight: 'bold' },
-  filterItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    elevation: 1,
-  },
+  filterItem: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20 },
 });
