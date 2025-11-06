@@ -1,4 +1,3 @@
-import { Calendar } from 'react-native-calendars';
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -14,6 +13,7 @@ import {
   FlatList,
   Platform,
 } from 'react-native';
+import { Calendar } from 'react-native-calendars';
 import { useTheme } from '../operacoes/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../supabase';
@@ -21,7 +21,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Easing } from 'react-native-reanimated';
 
-// ✅ Handler atualizado — compatível com SDK 51+
+// ⚠️ Mantido exatamente como você pediu
 Notifications.setNotificationHandler({
   handleNotification: async (): Promise<Notifications.NotificationBehavior> => ({
     shouldShowAlert: true,
@@ -31,7 +31,6 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
-
 
 async function registerForPushNotificationsAsync() {
   if (Platform.OS === 'android') {
@@ -60,7 +59,12 @@ async function registerForPushNotificationsAsync() {
   }
 }
 
-async function scheduleLocalNotification(reminderDate: string, reminderTime: string, title: string, body: string) {
+async function scheduleLocalNotification(
+  reminderDate: string,
+  reminderTime: string,
+  title: string,
+  body: string
+) {
   try {
     const [day, month, year] = reminderDate.split('/').map(Number);
     const [hour, minute] = reminderTime.split(':').map(Number);
@@ -77,6 +81,7 @@ async function scheduleLocalNotification(reminderDate: string, reminderTime: str
       throw new Error('Escolha uma data e hora no futuro.');
     }
 
+    // ⚠️ Mantido exatamente como você pediu
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title,
@@ -96,18 +101,18 @@ async function scheduleLocalNotification(reminderDate: string, reminderTime: str
   }
 }
 
-const RemindersScreen = ({ navigation }) => {
+const RemindersScreen = ({ navigation }: any) => {
   const { theme } = useTheme();
-  const [reminders, setReminders] = useState([]);
+  const [reminders, setReminders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingReminder, setEditingReminder] = useState(null);
+  const [editingReminder, setEditingReminder] = useState<any>(null);
   const [reminderTitle, setReminderTitle] = useState('');
   const [reminderDescription, setReminderDescription] = useState('');
   const [reminderDate, setReminderDate] = useState('');
   const [reminderTime, setReminderTime] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('Todos');
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [calendarVisible, setCalendarVisible] = useState(true);
   const calendarHeight = useState(new Animated.Value(1))[0];
 
@@ -164,7 +169,7 @@ const RemindersScreen = ({ navigation }) => {
     setModalVisible(true);
   };
 
-  const handleEditReminder = (reminder) => {
+  const handleEditReminder = (reminder: any) => {
     setEditingReminder(reminder);
     setReminderTitle(reminder.title);
     setReminderDescription(reminder.description);
@@ -183,11 +188,7 @@ const RemindersScreen = ({ navigation }) => {
     }
 
     try {
-      let reminderId;
-      let notificationId = null;
-
-      // Agenda notificação local
-      notificationId = await scheduleLocalNotification(
+      let notificationId = await scheduleLocalNotification(
         reminderDate,
         reminderTime,
         reminderTitle,
@@ -229,7 +230,7 @@ const RemindersScreen = ({ navigation }) => {
     }
   };
 
-  const handleDeleteReminder = (reminder) => {
+  const handleDeleteReminder = (reminder: any) => {
     Alert.alert('Confirmar exclusão', `Excluir o lembrete "${reminder.title}"?`, [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -333,7 +334,7 @@ const RemindersScreen = ({ navigation }) => {
               const key = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               acc[key] = { marked: true, dotColor: theme.green };
               return acc;
-            }, {});
+            }, {} as Record<string, any>);
             if (selectedDate) {
               marked[selectedDate] = {
                 ...(marked[selectedDate] || {}),
@@ -343,11 +344,15 @@ const RemindersScreen = ({ navigation }) => {
             }
             return marked;
           })()}
-          onDayPress={(day) => setSelectedDate(day.dateString)}
+          onDayPress={(day) => {
+            setSelectedDate(prev => (prev === day.dateString ? null : day.dateString));
+          }}
         />
       </Animated.View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}>
         <FlatList
           data={filters}
           horizontal
@@ -377,7 +382,7 @@ const RemindersScreen = ({ navigation }) => {
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="bell-outline" size={64} color={theme.text} />
             <Text style={[styles.emptyStateText, { color: theme.text }]}>
-              Nenhum lembrete para este dia
+              Nenhum lembrete encontrado
             </Text>
           </View>
         ) : (
@@ -414,9 +419,13 @@ const RemindersScreen = ({ navigation }) => {
         )}
       </ScrollView>
 
+      {/* 🟢 Botão flutuante corrigido */}
       <TouchableOpacity
         onPress={handleAddReminder}
-        style={[styles.floatingButton, { backgroundColor: theme.selected }]}
+        style={[
+          styles.floatingButton,
+          { backgroundColor: theme.selected, zIndex: 999, elevation: 6 },
+        ]}
         activeOpacity={0.8}>
         <MaterialCommunityIcons name="plus" size={28} color="#FFF" />
       </TouchableOpacity>
@@ -507,7 +516,6 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
   },
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContainer: { width: '90%', borderRadius: 12, padding: 20 },

@@ -6,25 +6,33 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  TextInput,
+  FlatList,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import PropTypes from "prop-types";
 import { useTheme } from "../operacoes/ThemeContext";
 import { supabase } from "../../supabase";
 
-const RecipesScreen = ({ navigation }) => {
+export default function MovimentacoesScreen({ navigation }) {
   const { theme } = useTheme();
   const [transactions, setTransactions] = useState([]);
+  const [filteredTransactions, setFilteredTransactions] = useState({});
   const [loading, setLoading] = useState(true);
-  const [searchText, setSearchText] = useState("");
+
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  const [totalBalance, setTotalBalance] = useState(0);
+  const [monthBalance, setMonthBalance] = useState(0);
+
+  const months = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ];
 
   const fetchOperations = async () => {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         navigation.navigate("Login");
         return;
@@ -33,12 +41,28 @@ const RecipesScreen = ({ navigation }) => {
       const { data, error } = await supabase
         .from("operations")
         .select("*")
-        .eq('user_id', user.id)
-        .order("created_at", { ascending: false });
+        .eq("user_id", user.id)
+        .order("date", { ascending: false });
 
       if (error) throw error;
 
-      setTransactions(data || []);
+      const mapped = data.map(op => ({
+        ...op,
+        type: op.type === "entradas" ? "Entradas" : "Saídas",
+        dateObj: new Date(op.date),
+        displayDate: new Date(op.date).toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }),
+      }));
+
+      const total = mapped.reduce((sum, op) => {
+        return op.type === "Entradas" ? sum + op.total : sum - op.total;
+      }, 0);
+
+      setTotalBalance(total);
+      setTransactions(mapped);
     } catch (error) {
       console.error("Erro ao carregar operações:", error);
       Alert.alert("Erro", "Não foi possível carregar as movimentações.");
@@ -47,42 +71,51 @@ const RecipesScreen = ({ navigation }) => {
     }
   };
 
+  const groupByDate = (data) => {
+    return data.reduce((acc, item) => {
+      const day = item.displayDate;
+      (acc[day] = acc[day] || []).push(item);
+      return acc;
+    }, {});
+  };
+
   useEffect(() => {
     fetchOperations();
 
     const subscription = supabase
-      .channel("operations-changes")
+      .channel("public:operations")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "operations" },
-        () => {
-          fetchOperations();
-        }
+        () => fetchOperations()
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(subscription);
-    };
-  }, [navigation]);
+    return () => supabase.removeChannel(subscription);
+  }, []);
 
-  const filteredTransactions = transactions.filter(
-    (transaction) =>
-      (transaction.description || "")
-        .toLowerCase()
-        .includes(searchText.toLowerCase()) ||
-      (transaction.category || "")
-        .toLowerCase()
-        .includes(searchText.toLowerCase())
-  );
+  useEffect(() => {
+    const filtered = transactions.filter((t) => {
+      const d = t.dateObj;
+      return (
+        d.getMonth() === selectedMonth &&
+        d.getFullYear() === selectedYear
+      );
+    });
 
-  const handleAddTransaction = () => {
-    navigation.navigate("Operações", { type: "Receita" });
-  };
+    // 🧮 Calcula saldo do mês selecionado
+    const monthBal = filtered.reduce((sum, op) => {
+      return op.type === "Entradas" ? sum + op.total : sum - op.total;
+    }, 0);
 
-  const handleDeleteTransaction = (item) => {
+    const grouped = groupByDate(filtered);
+    setFilteredTransactions(grouped);
+    setMonthBalance(monthBal);
+  }, [selectedMonth, selectedYear, transactions]);
+
+  const handleDeleteTransaction = async (item) => {
     Alert.alert(
-      "Confirmar exclusão",
+      "Excluir operação",
       "Tem certeza que deseja excluir esta operação?",
       [
         { text: "Cancelar", style: "cancel" },
@@ -95,13 +128,11 @@ const RecipesScreen = ({ navigation }) => {
                 .from("operations")
                 .delete()
                 .eq("id", item.id);
-
               if (error) throw error;
-
-              Alert.alert("Sucesso", "Movimentação excluída com sucesso!");
+              Alert.alert("Sucesso", "Operação excluída com sucesso!");
+              fetchOperations();
             } catch (error) {
-              console.error("Erro ao excluir movimentação:", error);
-              Alert.alert("Erro", "Erro ao excluir movimentação.");
+              Alert.alert("Erro", "Erro ao excluir operação.");
             }
           },
         },
@@ -109,216 +140,187 @@ const RecipesScreen = ({ navigation }) => {
     );
   };
 
-  const formatCurrency = (value) => {
-    if (!value || isNaN(value)) return "R$ 0,00";
-    return `R$ ${parseFloat(value)
-      .toFixed(2)
-      .replace(".", ",")
-      .replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
+  const changeMonth = (direction) => {
+    let newMonth = selectedMonth + direction;
+    let newYear = selectedYear;
+
+    if (newMonth < 0) {
+      newMonth = 11;
+      newYear--;
+    } else if (newMonth > 11) {
+      newMonth = 0;
+      newYear++;
+    }
+
+    setSelectedMonth(newMonth);
+    setSelectedYear(newYear);
   };
 
   if (loading) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centered,
-          { backgroundColor: theme.background },
-        ]}
+        style={[styles.centered, { backgroundColor: theme.background, flex: 1 }]}
       >
         <Text style={{ color: theme.text }}>Carregando...</Text>
       </View>
     );
   }
 
+  const days = Object.keys(filteredTransactions).sort((a, b) => {
+    const [da, ma, ya] = a.split("/").map(Number);
+    const [db, mb, yb] = b.split("/").map(Number);
+    return new Date(yb, mb - 1, db) - new Date(ya, ma - 1, da);
+  });
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* 🔹 Cabeçalho */}
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.text }]}>
-            Histórico de Movimentações
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
+      {/* 💰 SALDOS */}
+      <View style={styles.balanceContainer}>
+        <Text style={[styles.totalBalanceText, { color: totalBalance >= 0 ? theme.green : theme.red }]}> Saldo Total </Text>
+        <Text style={[styles.totalBalanceText, { color: totalBalance >= 0 ? theme.green : theme.red }]}>
+          R$ {totalBalance.toFixed(2).replace(".", ",")}
+        </Text>
+        <Text style={[styles.monthBalanceText, { color: theme.text }]}>
+          Saldo de {months[selectedMonth]}:{" "}
+          <Text style={{ color: monthBalance >= 0 ? theme.green : theme.red }}>
+            R$ {monthBalance.toFixed(2).replace(".", ",")}
           </Text>
-          <TouchableOpacity onPress={handleAddTransaction} style={styles.addButton}>
-            <MaterialCommunityIcons name="plus" size={26} color={theme.text} />
-          </TouchableOpacity>
-        </View>
+        </Text>
+      </View>
 
-        {/* 🔍 Campo de busca */}
-        <View
-          style={[
-            styles.searchContainer,
-            { backgroundColor: theme.card, borderColor: theme.text },
-          ]}
-        >
-          <TextInput
-            style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Buscar por descrição ou categoria..."
-            placeholderTextColor={theme.text}
-            value={searchText}
-            onChangeText={setSearchText}
-          />
-          <MaterialCommunityIcons
-            name="magnify"
-            size={24}
-            color={theme.text}
-            style={styles.searchIcon}
-          />
-        </View>
+      <View style={styles.monthHeader}>
+        <TouchableOpacity onPress={() => changeMonth(-1)}>
+          <MaterialCommunityIcons name="chevron-left" size={30} color={theme.text} />
+        </TouchableOpacity>
 
-        {/* 📋 Lista de transações */}
-        {filteredTransactions.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={[styles.emptyStateText, { color: theme.text }]}>
-              {searchText
-                ? "Nenhuma movimentação encontrada"
-                : "Nenhuma movimentação cadastrada"}
-            </Text>
-            <Text style={[styles.emptyStateSubtext, { color: theme.text }]}>
-              {searchText
-                ? "Tente buscar por outro termo"
-                : "Adicione sua primeira movimentação!"}
-            </Text>
+        <Text style={[styles.monthTitle, { color: theme.text }]}>
+          {months[selectedMonth]} {selectedYear}
+        </Text>
+
+        <TouchableOpacity onPress={() => changeMonth(1)}>
+          <MaterialCommunityIcons name="chevron-right" size={30} color={theme.text} />
+        </TouchableOpacity>
+      </View>
+
+      {days.length === 0 ? (
+        <View style={styles.emptyState}>
+          <MaterialCommunityIcons name="calendar-blank-outline" size={64} color={theme.text} />
+          <Text style={[styles.emptyText, { color: theme.text }]}>Nenhuma operação neste mês</Text>
+        </View>
+      ) : (
+        days.map((day) => (
+          <View key={day} style={styles.daySection}>
+            <Text style={[styles.dayTitle, { color: theme.text }]}>{day}</Text>
+            <FlatList
+              data={filteredTransactions[day]}
+              renderItem={({ item }) => (
+                <View
+                  style={[styles.transactionItem, { backgroundColor: theme.card }]}
+                >
+                  <View style={styles.transactionInfo}>
+                    <Text style={[styles.transactionCategory, { color: theme.text }]}>
+                      {item.category}
+                    </Text>
+                    <Text style={[styles.transactionDesc, { color: theme.text }]}>
+                      {item.description || "Sem descrição"}
+                    </Text>
+                  </View>
+
+                  <View style={styles.transactionRight}>
+                    <Text
+                      style={[
+                        styles.transactionAmount,
+                        { color: item.type === "Entradas" ? theme.green : theme.red },
+                      ]}
+                    >
+                      {item.type === "Entradas" ? "+" : "-"}R$
+                      {item.total.toFixed(2).replace(".", ",")}
+                    </Text>
+
+                    <View style={styles.actions}>
+                      <TouchableOpacity
+                        onPress={() =>
+                          navigation.navigate("Edit", { operations: item })
+                        }
+                      >
+                        <MaterialCommunityIcons
+                          name="pencil"
+                          size={20}
+                          color={theme.text}
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteTransaction(item)}
+                        style={{ marginLeft: 10 }}
+                      >
+                        <MaterialCommunityIcons
+                          name="delete"
+                          size={20}
+                          color={theme.red}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              )}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+            />
           </View>
-        ) : (
-          filteredTransactions.map((item, index) => (
-            <View
-              key={`${item.id || Math.random()}-${index}`}
-              style={[styles.transactionItem, { backgroundColor: theme.card }]}
-            >
-              <View style={styles.transactionDetails}>
-                <Text style={[styles.transactionCategory, { color: theme.text }]}>{item.category}</Text>
-                <Text
-                  style={[
-                    styles.transactionAmount,
-                    { color: item.type === 'Entradas' ? theme.green : theme.red },
-                  ]}
-                >
-                  {item.type === 'Entradas' ? '+' : ''}
-                  {formatCurrency(item.total?.toString?.() || '')}
-                </Text>
-                <Text style={[styles.transactionDescription, { color: theme.text }]}>{item.description}</Text>
-              </View>
-
-              <View style={styles.transactionActions}>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('Edit', { operations: item })}
-                  style={{ padding: 10 }}
-                  accessibilityLabel="Editar movimentação"
-                >
-                  <MaterialCommunityIcons name="pencil" size={20} color={theme.text} />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => handleDeleteTransaction(item)}
-                  style={styles.deleteButton}
-                  accessibilityLabel="Excluir movimentação"
-                >
-                  <MaterialCommunityIcons name="delete" size={20} color={theme.red} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))
-        )}
-      </ScrollView>
-    </View>
+        ))
+      )}
+    </ScrollView>
   );
-};
+}
 
-RecipesScreen.propTypes = {
+MovimentacoesScreen.propTypes = {
   navigation: PropTypes.shape({
     navigate: PropTypes.func.isRequired,
   }).isRequired,
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    paddingTop: 50,
-  },
-  centered: {
-    justifyContent: "center",
+  container: { flex: 1, padding: 20, paddingTop: 50 },
+  balanceContainer: {
     alignItems: "center",
+    marginBottom: 25,
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 22,
+  totalBalanceText: {
+    fontSize: 34,
     fontWeight: "bold",
   },
-  addButton: {
-    padding: 10,
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 8,
-    marginBottom: 20,
-    paddingHorizontal: 15,
-    borderWidth: 1,
-  },
-  searchInput: {
-    flex: 1,
-    height: 50,
-  },
-  searchIcon: {
-    marginLeft: 10,
-  },
-  emptyState: {
-    alignItems: "center",
-    marginTop: 100,
-  },
-  emptyStateText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginTop: 20,
-  },
-  emptyStateSubtext: {
+  monthBalanceText: {
     fontSize: 14,
     marginTop: 5,
   },
+  monthHeader: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  monthTitle: { fontSize: 20, fontWeight: "bold", marginHorizontal: 10 },
+  daySection: { marginBottom: 15 },
+  dayTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 8 },
   transactionItem: {
     flexDirection: "row",
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 8,
     elevation: 2,
   },
-  transactionDetails: {
-    flex: 1,
-  },
-  transactionDescription: {
-    fontSize: 14,
-  },
-  transactionAmount: {
-    fontSize: 14,
-    fontWeight: "bold",
-    marginBottom: 3,
-  },
-  transactionCategory: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 5,
-  },
-  transactionActions: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  deleteButton: {
-    padding: 10,
-  },
+  transactionInfo: { flex: 1 },
+  transactionCategory: { fontSize: 16, fontWeight: "600" },
+  transactionDesc: { fontSize: 14 },
+  transactionRight: { alignItems: "flex-end" },
+  transactionAmount: { fontSize: 16, fontWeight: "bold" },
+  actions: { flexDirection: "row", marginTop: 5 },
+  centered: { justifyContent: "center", alignItems: "center" },
+  emptyState: { alignItems: "center", marginTop: 80 },
+  emptyText: { fontSize: 16, marginTop: 10 },
 });
-
-export default RecipesScreen;

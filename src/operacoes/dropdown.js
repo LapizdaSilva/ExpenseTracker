@@ -4,47 +4,50 @@ import { Dropdown } from 'react-native-element-dropdown';
 import PropTypes from 'prop-types';
 import { useTheme } from './ThemeContext';
 
-const DropdownComponent = ({ data, value, onChange }) => {
+const DropdownComponent = ({ data, value, onChange, editable = true, theme }) => {
   const [isFocus, setIsFocus] = useState(false);
-  const { theme } = useTheme();
+  const { theme: defaultTheme } = useTheme();
+  const activeTheme = theme || defaultTheme;
 
   return (
     <View>
       <Dropdown
+        disable={!editable}
         style={[
           styles.dropdown,
           {
-            backgroundColor: theme.card,
-            borderColor: theme.text,
-            color: theme.text,
-          }
+            backgroundColor: activeTheme.card,
+            borderColor: activeTheme.text,
+            color: activeTheme.text,
+          },
         ]}
-        placeholderStyle={{ color: theme.text }}
-        selectedTextStyle={{ color: theme.text }}
-        itemTextStyle={{ color: theme.text }}
-        containerStyle={{ backgroundColor: theme.card }}
+        placeholderStyle={{ color: activeTheme.text }}
+        selectedTextStyle={{ color: activeTheme.text }}
+        itemTextStyle={{ color: activeTheme.text }}
+        containerStyle={{ backgroundColor: activeTheme.card }}
         data={data}
         labelField="label"
         valueField="value"
-        placeholder={!isFocus ? 'Categoria *' : '...'}
+        placeholder={!isFocus ? 'Selecione uma categoria *' : '...'}
         value={value}
         onFocus={() => setIsFocus(true)}
         onBlur={() => setIsFocus(false)}
-        onChange= {item => {
-          onChange(item.value);
+        onChange={item => {
+          onChange(item?.value?.toString() || '');
           setIsFocus(false);
         }}
-      />  
+      />
     </View>
   );
 };
 
-
 DropdownComponent.propTypes = {
   data: PropTypes.array.isRequired,
   value: PropTypes.any,
-  onChange: PropTypes.func.isRequired
-}
+  onChange: PropTypes.func.isRequired,
+  editable: PropTypes.bool,
+  theme: PropTypes.object,
+};
 
 export default DropdownComponent;
 
@@ -55,8 +58,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 8,
     marginBottom: 15,
-  },
-  icon: {
-    marginRight: 5,
   },
 });

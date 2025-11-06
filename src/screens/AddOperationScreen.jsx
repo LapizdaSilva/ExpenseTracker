@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { supabase } from '../../supabase';
 import PropTypes from 'prop-types';
-import DropdownComponent from '../operacoes/dropdown';  
+import DropdownComponent from '../operacoes/dropdown';
 import { useTheme } from '../operacoes/ThemeContext';
 
 const categoriaDesp = [
@@ -12,7 +12,7 @@ const categoriaDesp = [
   { label: 'Lazer', value: 'Lazer' },
   { label: 'Entretenimento', value: 'Entretenimento' },
   { label: 'Supermercado', value: 'Supermercado' },
-  { label: 'Assinaturas', value: 'Assinaturas' }, 
+  { label: 'Assinaturas', value: 'Assinaturas' },
   { label: 'Outros', value: 'Outros' },
 ];
 
@@ -26,15 +26,15 @@ const categoriaRec = [
 
 const AddOperationScreen = ({ navigation }) => {
   const { theme } = useTheme();
-  const [operationType, setOperationType] = useState('saidas');
+  const [operationType, setOperationType] = useState('saidas'); 
   const [date, setDate] = useState('');
   const [description, setDescription] = useState('');
   const [total, setTotal] = useState('');
   const [loading, setLoading] = useState(false);
   const [category, setCategory] = useState('');
 
-  const handleSaveOperation = async () => {    
-    if (!date || !total || !category) {
+  const handleSaveOperation = async () => {
+    if (!date || !total || !category || !category.toString().trim()) {
       Alert.alert('Erro', 'Por favor, preencha os campos obrigatórios: Data, Categoria e Total');
       return;
     }
@@ -53,35 +53,44 @@ const AddOperationScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const formattedDate = new Date(date.split('/').reverse().join('-')).toISOString();
+      const parts = date.split('/');
+      if (parts.length !== 3) throw new Error('Formato de data inválido');
+      const formattedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+      if (Number.isNaN(formattedDate.getTime())) throw new Error('Data inválida');
 
-      const { error: insertError } = await supabase.from('operations').insert([
+      const { data, error } = await supabase.from('operations').insert([
         {
           user_id: user.id,
-          type: operationType,
-          category,
+          type: operationType, 
+          category: category.toString().trim(),
           description: description || '',
           total: totalValue,
-          date: formattedDate,
+          date: formattedDate.toISOString(),
           created_at: new Date().toISOString(),
         },
       ]);
 
-      if (insertError) throw insertError;
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw error;
+      }
 
       Alert.alert('Sucesso', 'Operação salva com sucesso!', [
-        { text: 'OK', onPress: () => {
-          setDate('');
-          setCategory('');
-          setDescription('');
-          setTotal('');
-          navigation.navigate('Home');
-        }}
+        {
+          text: 'OK',
+          onPress: () => {
+            setDate('');
+            setCategory('');
+            setDescription('');
+            setTotal('');
+            navigation.navigate('Home');
+          },
+        },
       ]);
     } catch (error) {
       console.error('Erro ao salvar operação:', error);
-      Alert.alert('Erro', 'Erro ao salvar operação. Tente novamente.');
-    } finally { 
+      Alert.alert('Erro', `Erro ao salvar operação. ${error.message || ''}`);
+    } finally {
       setLoading(false);
     }
   };
@@ -102,34 +111,42 @@ const AddOperationScreen = ({ navigation }) => {
       <View style={[styles.toggleContainer, { backgroundColor: theme.card }]}>
         <TouchableOpacity
           style={[
-            styles.toggleButton, 
+            styles.toggleButton,
             operationType === 'saidas' && { backgroundColor: theme.red },
-            operationType !== 'saidas' && { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.text }
+            operationType !== 'saidas' && { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.text },
           ]}
           onPress={() => setOperationType('saidas')}
           disabled={loading}
         >
-          <Text style={[
-            styles.toggleButtonText, 
-            { color: theme.text },
-            operationType === 'saidas' && { color: '#FFF' }
-          ]}>Saídas</Text>
+          <Text
+            style={[
+              styles.toggleButtonText,
+              { color: theme.text },
+              operationType === 'saidas' && { color: '#FFF' },
+            ]}
+          >
+            Saídas
+          </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[
-            styles.toggleButton, 
-            operationType === 'Entradas' && { backgroundColor: theme.green },
-            operationType !== 'Entradas' && { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.text }
+            styles.toggleButton,
+            operationType === 'entradas' && { backgroundColor: theme.green },
+            operationType !== 'entradas' && { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.text },
           ]}
-          onPress={() => setOperationType('Entradas')}
+          onPress={() => setOperationType('entradas')}
           disabled={loading}
         >
-          <Text style={[
-            styles.toggleButtonText, 
-            { color: theme.text },
-            operationType === 'Entradas' && { color: '#FFF' }
-          ]}>Entradas</Text>
+          <Text
+            style={[
+              styles.toggleButtonText,
+              { color: theme.text },
+              operationType === 'entradas' && { color: '#FFF' },
+            ]}
+          >
+            Entradas
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -154,13 +171,13 @@ const AddOperationScreen = ({ navigation }) => {
         style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text }]}
         placeholder="Descrição (Opcional)"
         placeholderTextColor={theme.text}
-        value={description} 
+        value={description}
         onChangeText={setDescription}
         editable={!loading}
       />
-      <TextInput 
-        style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text }]} 
-        placeholder="Total *" 
+      <TextInput
+        style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text }]}
+        placeholder="Total *"
         placeholderTextColor={theme.text}
         keyboardType="numeric"
         value={total}
@@ -169,21 +186,15 @@ const AddOperationScreen = ({ navigation }) => {
       />
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.cancelButton]} 
-          onPress={handleCancel}
-          disabled={loading}
-        >
+        <TouchableOpacity style={[styles.actionButton, styles.cancelButton]} onPress={handleCancel} disabled={loading}>
           <Text style={styles.buttonText}>{'Cancelar'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.saveButton, loading && styles.buttonDisabled]} 
+        <TouchableOpacity
+          style={[styles.actionButton, styles.saveButton, loading && styles.buttonDisabled]}
           onPress={handleSaveOperation}
           disabled={loading}
         >
-          <Text style={styles.buttonText}>
-            {loading ? 'Salvando...' : 'Salvar'}
-          </Text>
+          <Text style={styles.buttonText}>{loading ? 'Salvando...' : 'Salvar'}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

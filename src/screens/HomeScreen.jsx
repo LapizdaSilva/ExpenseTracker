@@ -33,49 +33,12 @@ export default function HomeScreen({ navigation }) {
   const { theme } = useTheme();
   const [operations, setOperations] = useState([]);
   const [balance, setBalance] = useState(0);
+  const [monthBalance, setMonthBalance] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const handleOperationPress = (item) => {
-    if (!item.id) {
-      Alert.alert('Erro', 'ID da operação não encontrado.');
-      return;
-    }
-
-    Alert.alert(
-      'Confirmar Exclusão',
-      `Tem certeza que deseja excluir esta operação?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { data: { user } } = await supabase.auth.getUser();
-              if (!user) return;
-              const { error } = await supabase
-                .from('operations')
-                .delete()
-                .eq('id', item.id)
-                .eq('user_id', user.id);
-
-              if (error) throw error;
-              Alert.alert('Sucesso', 'Operação excluída com sucesso!');
-              fetchOperations();
-            } catch (error) {
-              console.error('Erro ao excluir operação:', error);
-              Alert.alert('Erro', 'Erro ao excluir operação. Tente novamente.');
-            }
-          },
-        },
-        {
-          text: 'Editar',
-          style: 'default',
-          onPress: () => navigation.navigate('Edit', { operations: item }),
-        },
-      ]
-    );
-  };
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
 
   const fetchOperations = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -89,7 +52,7 @@ export default function HomeScreen({ navigation }) {
       .from('operations')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      .order('date', { ascending: false });
 
     if (error) {
       console.error('Erro ao buscar operações:', error);
@@ -101,23 +64,36 @@ export default function HomeScreen({ navigation }) {
     const mapped = data.map(op => ({
       ...op,
       type: op.type === 'entradas' ? 'Entradas' : 'Saídas',
+      dateObj: new Date(op.date),
       displayDate: new Date(op.date).toLocaleDateString('pt-BR'),
     }));
 
-    // Agrupar por data (string formatada)
-    const grouped = mapped.reduce((acc, item) => {
+    // 🧮 Calcula saldo total
+    const total = mapped.reduce((sum, op) => {
+      return op.type === 'Entradas' ? sum + op.total : sum - op.total;
+    }, 0);
+    setBalance(total);
+
+    // 🧮 Filtra apenas operações do mês atual
+    const monthOps = mapped.filter(op => {
+      const d = op.dateObj;
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+
+    // 🧮 Calcula saldo do mês atual
+    const monthTotal = monthOps.reduce((sum, op) => {
+      return op.type === 'Entradas' ? sum + op.total : sum - op.total;
+    }, 0);
+    setMonthBalance(monthTotal);
+
+    // Agrupa por dia
+    const grouped = monthOps.reduce((acc, item) => {
       const date = item.displayDate || 'Sem data';
       (acc[date] = acc[date] || []).push(item);
       return acc;
     }, {});
 
-    // Calcula saldo
-    const total = mapped.reduce((sum, op) => {
-      return op.type === 'Entradas' ? sum + op.total : sum - op.total;
-    }, 0);
-
     setOperations(grouped);
-    setBalance(total);
     setLoading(false);
   };
 
@@ -144,10 +120,17 @@ export default function HomeScreen({ navigation }) {
     );
   }
 
-  const dates = Object.keys(operations);
+  const dates = Object.keys(operations).sort((a, b) => {
+    const [da, ma, ya] = a.split('/').map(Number);
+    const [db, mb, yb] = b.split('/').map(Number);
+    return new Date(yb, mb - 1, db) - new Date(ya, ma - 1, da);
+  });
+
+  const monthName = now.toLocaleString('pt-BR', { month: 'long' });
 
   return (
     <ScrollView style={[styles.homeContainer, { backgroundColor: theme.background }]}>
+      {/* 💰 SALDOS */}
       <View style={styles.header}>
         <Text style={[styles.balanceTitle, { color: theme.text }]}>Saldo</Text>
         <Text
@@ -158,13 +141,19 @@ export default function HomeScreen({ navigation }) {
         >
           R$ {balance.toFixed(2).replace('.', ',')}
         </Text>
+        <Text style={[styles.monthBalance, { color: theme.text }]}>
+          Saldo de {monthName.charAt(0).toUpperCase() + monthName.slice(1)}:{' '}
+          <Text style={{ color: monthBalance >= 0 ? theme.green : theme.red }}>
+            R$ {monthBalance.toFixed(2).replace('.', ',')}
+          </Text>
+        </Text>
       </View>
 
       {dates.length === 0 ? (
         <View style={styles.emptyState}>
           <MaterialCommunityIcons name="wallet-outline" size={64} color={theme.text} />
           <Text style={[styles.emptyStateText, { color: theme.text }]}>
-            Nenhuma operação encontrada
+            Nenhuma operação neste mês
           </Text>
           <Text style={[styles.emptyStateSubtext, { color: theme.text }]}>
             Adicione sua primeira operação!
@@ -189,6 +178,48 @@ export default function HomeScreen({ navigation }) {
       )}
     </ScrollView>
   );
+
+  function handleOperationPress(item) {
+    if (!item.id) {
+      Alert.alert('Erro', 'ID da operação não encontrado.');
+      return;
+    }
+
+    Alert.alert(
+      'Opção',
+      'Deseja editar ou excluir esta operação?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Editar',
+          onPress: () => navigation.navigate('Edit', { operations: item }),
+        },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (!user) return;
+
+              const { error } = await supabase
+                .from('operations')
+                .delete()
+                .eq('id', item.id)
+                .eq('user_id', user.id);
+
+              if (error) throw error;
+              Alert.alert('Sucesso', 'Operação excluída com sucesso!');
+              fetchOperations();
+            } catch (error) {
+              console.error('Erro ao excluir operação:', error);
+              Alert.alert('Erro', 'Erro ao excluir operação. Tente novamente.');
+            }
+          },
+        },
+      ]
+    );
+  }
 }
 
 HomeScreen.propTypes = {
@@ -210,9 +241,10 @@ TransactionItem.propTypes = {
 const styles = StyleSheet.create({
   homeContainer: { flex: 1, padding: 20 },
   centered: { justifyContent: 'center', alignItems: 'center' },
-  header: { marginBottom: 20 },
-  balanceTitle: { fontSize: 20, marginBottom: 7, marginTop: 30 },
+  header: { marginBottom: 20, alignItems: 'center', marginTop: 30 },
+  balanceTitle: { fontSize: 20, marginBottom: 7 },
   balanceValue: { fontSize: 36, fontWeight: 'bold' },
+  monthBalance: { fontSize: 14, marginTop: 5 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', marginTop: 20, marginBottom: 10 },
   transactionItem: {
     flexDirection: 'row',

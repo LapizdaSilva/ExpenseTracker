@@ -7,7 +7,7 @@ import { useTheme } from '../operacoes/ThemeContext';
 
 const categoriaDesp = [
   { label: 'Alimentação', value: 'Alimentação' },
-  { label: 'Transporte', value: 'Transporte'},
+  { label: 'Transporte', value: 'Transporte' },
   { label: 'Saúde', value: 'Saúde' },
   { label: 'Lazer', value: 'Lazer' },
   { label: 'Entretenimento', value: 'Entretenimento' },
@@ -28,11 +28,15 @@ export default function EditScreen({ route, navigation }) {
   const { theme } = useTheme();
   const { operations } = route.params;
 
+  // padronizar o tipo inicial para minúsculo
+  const initialType =
+    operations.type?.toLowerCase?.() === 'entradas' ? 'entradas' : 'saidas';
+
+  const [operationType, setOperationType] = useState(initialType);
   const [category, setCategory] = useState(operations.category || '');
   const [description, setDescription] = useState(operations.description || '');
   const [total, setTotal] = useState(operations?.total?.toString?.() || '');
   const [loading, setLoading] = useState(false);
-  const [operationType, ] = useState(operations.type || 'Saídas');
 
   const formatCurrency = (value) => value.replace(/[^0-9.,]/g, '');
 
@@ -55,6 +59,7 @@ export default function EditScreen({ route, navigation }) {
       const { error } = await supabase
         .from('operations')
         .update({
+          type: operationType,
           category,
           description,
           total: parseFloat(total.replace(',', '.')),
@@ -85,47 +90,63 @@ export default function EditScreen({ route, navigation }) {
       contentContainerStyle={styles.scrollContent}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={[styles.title, { color: theme.text }]}>{'Editar Operação'}</Text>
+      <Text style={[styles.title, { color: theme.text }]}>Editar Operação</Text>
 
+      {/* Botões para alternar o tipo */}
       <View style={[styles.toggleContainer, { backgroundColor: theme.card }]}>
         <TouchableOpacity
           style={[
-            styles.toggleButton, 
-            operationType === 'Saídas' && { backgroundColor: theme.red },
-            operationType !== 'Saídas' && { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.text }
+            styles.toggleButton,
+            operationType === 'saidas' && { backgroundColor: theme.red },
+            operationType !== 'saidas' && {
+              backgroundColor: 'transparent',
+              borderWidth: 1,
+              borderColor: theme.text,
+            },
           ]}
-          disabled
+          onPress={() => setOperationType('saidas')}
+          disabled={loading}
         >
-          <Text style={[
-            styles.toggleButtonText, 
-            { color: theme.text }, 
-            operationType === 'Saídas' && { color: '#FFF' }
-          ]}>
+          <Text
+            style={[
+              styles.toggleButtonText,
+              { color: theme.text },
+              operationType === 'saidas' && { color: '#FFF' },
+            ]}
+          >
             Saídas
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[
-            styles.toggleButton, 
-            operationType === 'Entradas' && { backgroundColor: theme.green },
-            operationType !== 'Entradas' && { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.text }
+            styles.toggleButton,
+            operationType === 'entradas' && { backgroundColor: theme.green },
+            operationType !== 'entradas' && {
+              backgroundColor: 'transparent',
+              borderWidth: 1,
+              borderColor: theme.text,
+            },
           ]}
-          disabled
+          onPress={() => setOperationType('entradas')}
+          disabled={loading}
         >
-          <Text style={[
-            styles.toggleButtonText, 
-            { color: theme.text }, 
-            operationType === 'Entradas' && { color: '#FFF' }
-          ]}>
+          <Text
+            style={[
+              styles.toggleButtonText,
+              { color: theme.text },
+              operationType === 'entradas' && { color: '#FFF' },
+            ]}
+          >
             Entradas
           </Text>
         </TouchableOpacity>
       </View>
 
+      {/* Dropdown de categoria dinâmico */}
       <DropdownComponent
         placeholder="Categoria"
         placeholderTextColor={theme.text}
-        data={operationType === 'Saídas' ? categoriaDesp : categoriaRec}
+        data={operationType === 'saidas' ? categoriaDesp : categoriaRec}
         value={category}
         onChange={setCategory}
         editable={!loading}
@@ -133,7 +154,14 @@ export default function EditScreen({ route, navigation }) {
       />
 
       <TextInput
-        style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text }]}
+        style={[
+          styles.input,
+          {
+            backgroundColor: theme.card,
+            color: theme.text,
+            borderColor: theme.text,
+          },
+        ]}
         placeholder="Descrição (Opcional)"
         placeholderTextColor={theme.text}
         value={description}
@@ -142,7 +170,14 @@ export default function EditScreen({ route, navigation }) {
       />
 
       <TextInput
-        style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text }]}
+        style={[
+          styles.input,
+          {
+            backgroundColor: theme.card,
+            color: theme.text,
+            borderColor: theme.text,
+          },
+        ]}
         placeholder="Total *"
         placeholderTextColor={theme.text}
         keyboardType="numeric"
@@ -160,7 +195,11 @@ export default function EditScreen({ route, navigation }) {
           <Text style={styles.buttonText}>Cancelar</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.actionButton, styles.saveButton, loading && styles.buttonDisabled]}
+          style={[
+            styles.actionButton,
+            styles.saveButton,
+            loading && styles.buttonDisabled,
+          ]}
           onPress={handleSave}
           disabled={loading}
         >
@@ -186,7 +225,6 @@ EditScreen.propTypes = {
         description: PropTypes.string,
         total: PropTypes.number.isRequired,
         type: PropTypes.string,
-        collectionPath: PropTypes.string,
       }).isRequired,
     }).isRequired,
   }).isRequired,
