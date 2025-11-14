@@ -61,37 +61,41 @@ export default function HomeScreen({ navigation }) {
       return;
     }
 
-    const mapped = data.map(op => ({
-      ...op,
-      type: op.type === 'entradas' ? 'Entradas' : 'Saídas',
-      dateObj: new Date(op.date),
-      displayDate: new Date(op.date).toLocaleDateString('pt-BR'),
-    }));
+    const mapped = data.map(op => {
+      const dateUTC = new Date(op.date);
+      const dateLocal = new Date(dateUTC.getTime() + dateUTC.getTimezoneOffset() * 60000 );
 
-    // 🧮 Calcula saldo total
+      return {
+        ...op,
+        type: op.type === 'entradas' ? 'Entradas' : 'Saídas',
+        dateObj: dateLocal,
+        displayDate: dateLocal.toLocaleDateString('pt-BR'),
+      };
+    });
+
     const total = mapped.reduce((sum, op) => {
       return op.type === 'Entradas' ? sum + op.total : sum - op.total;
     }, 0);
     setBalance(total);
 
-    // 🧮 Filtra apenas operações do mês atual
     const monthOps = mapped.filter(op => {
       const d = op.dateObj;
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     });
 
-    // 🧮 Calcula saldo do mês atual
     const monthTotal = monthOps.reduce((sum, op) => {
       return op.type === 'Entradas' ? sum + op.total : sum - op.total;
     }, 0);
     setMonthBalance(monthTotal);
 
-    // Agrupa por dia
-    const grouped = monthOps.reduce((acc, item) => {
-      const date = item.displayDate || 'Sem data';
-      (acc[date] = acc[date] || []).push(item);
-      return acc;
-    }, {});
+  const grouped = mapped.reduce((acc, item) => {
+    const d = item.dateObj;
+    const monthName = d.toLocaleString('pt-BR', { month: 'long' });
+    const monthYear = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} de ${d.getFullYear()}`;
+    (acc[monthYear] = acc[monthYear] || []).push(item);
+    return acc;
+  }, {});
+
 
     setOperations(grouped);
     setLoading(false);
@@ -121,9 +125,11 @@ export default function HomeScreen({ navigation }) {
   }
 
   const dates = Object.keys(operations).sort((a, b) => {
-    const [da, ma, ya] = a.split('/').map(Number);
-    const [db, mb, yb] = b.split('/').map(Number);
-    return new Date(yb, mb - 1, db) - new Date(ya, ma - 1, da);
+    const [monthA, yearA] = a.split(' de ');
+    const [monthB, yearB] = b.split(' de ');
+    const dateA = new Date(`${monthA} 1, ${yearA}`);
+    const dateB = new Date(`${monthB} 1, ${yearB}`);
+    return dateB - dateA;
   });
 
   const monthName = now.toLocaleString('pt-BR', { month: 'long' });
@@ -160,19 +166,36 @@ export default function HomeScreen({ navigation }) {
           </Text>
         </View>
       ) : (
-        dates.map(date => (
-          <View key={date}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>{date}</Text>
-            <FlatList
-              data={operations[date]}
-              renderItem={({ item }) => (
-                <TouchableOpacity onPress={() => handleOperationPress(item)}>
-                  <TransactionItem item={item} theme={theme} />
-                </TouchableOpacity>
-              )}
-              keyExtractor={item => item.id}
-              scrollEnabled={false}
-            />
+        dates.map(monthYear => (
+          <View key={monthYear}>
+            <Text style={[styles.sectionTitle, { color: theme.text, fontSize: 18, marginBottom: 10 }]}>
+              {monthYear}
+            </Text>
+            {operations[monthYear].map(item => (
+              <TouchableOpacity key={item.id} onPress={() => handleOperationPress(item)}>
+                <View style={[styles.transactionItem, { backgroundColor: theme.card }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.categorytitle, { color: theme.text }]}>
+                      {item.category}
+                    </Text>
+                    <Text style={[styles.transactionDescription, { color: theme.text }]}>
+                      {item.description || 'Sem descrição'}
+                    </Text>
+                    <Text style={[{ color: theme.text, fontSize: 12, marginTop: 2 }]}>
+                      {item.displayDate}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.transactionAmount,
+                      { color: item.type === 'Entradas' ? theme.green : theme.red },
+                    ]}
+                  >
+                    {item.type === 'Entradas' ? '+' : '-'}R$ {item.total.toFixed(2).replace('.', ',')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
           </View>
         ))
       )}

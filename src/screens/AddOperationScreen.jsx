@@ -24,6 +24,9 @@ const categoriaRec = [
   { label: 'Outros', value: 'Outros' },
 ];
 
+const now = new Date();
+const localISOTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString();
+
 const AddOperationScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const [operationType, setOperationType] = useState('saidas'); 
@@ -66,7 +69,7 @@ const AddOperationScreen = ({ navigation }) => {
           description: description || '',
           total: totalValue,
           date: formattedDate.toISOString(),
-          created_at: new Date().toISOString(),
+          created_at: localISOTime,
         },
       ]);
 

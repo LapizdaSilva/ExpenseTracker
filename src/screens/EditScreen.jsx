@@ -5,6 +5,8 @@ import PropTypes from 'prop-types';
 import DropdownComponent from '../operacoes/dropdown';
 import { useTheme } from '../operacoes/ThemeContext';
 
+const localISOTime = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString();
+
 const categoriaDesp = [
   { label: 'Alimentação', value: 'Alimentação' },
   { label: 'Transporte', value: 'Transporte' },
@@ -28,7 +30,6 @@ export default function EditScreen({ route, navigation }) {
   const { theme } = useTheme();
   const { operations } = route.params;
 
-  // padronizar o tipo inicial para minúsculo
   const initialType =
     operations.type?.toLowerCase?.() === 'entradas' ? 'entradas' : 'saidas';
 
@@ -54,7 +55,9 @@ export default function EditScreen({ route, navigation }) {
         setLoading(false);
         return;
       }
+
       const uid = user.id;
+      const localISOTime = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString();
 
       const { error } = await supabase
         .from('operations')
@@ -63,15 +66,15 @@ export default function EditScreen({ route, navigation }) {
           category,
           description,
           total: parseFloat(total.replace(',', '.')),
+          updated_at: localISOTime,
         })
-        .eq('opid', operations.opid)
+        .eq('id', operations.id) 
         .eq('user_id', uid);
 
       if (error) throw error;
 
-      Alert.alert('Sucesso', 'Operação atualizada com sucesso!', [
-        { text: 'OK', onPress: () => navigation.navigate('Home') },
-      ]);
+      Alert.alert('Sucesso', 'Operação atualizada com sucesso!');
+      navigation.goBack(); 
     } catch (error) {
       console.error('Erro ao atualizar operação:', error);
       Alert.alert('Erro', 'Não foi possível atualizar a operação.');
@@ -79,6 +82,7 @@ export default function EditScreen({ route, navigation }) {
       setLoading(false);
     }
   };
+
 
   const handleCancel = () => {
     navigation.goBack();

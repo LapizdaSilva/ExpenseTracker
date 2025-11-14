@@ -21,7 +21,6 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Easing } from 'react-native-reanimated';
 
-// ⚠️ Mantido exatamente como você pediu
 Notifications.setNotificationHandler({
   handleNotification: async (): Promise<Notifications.NotificationBehavior> => ({
     shouldShowAlert: true,
@@ -81,7 +80,6 @@ async function scheduleLocalNotification(
       throw new Error('Escolha uma data e hora no futuro.');
     }
 
-    // ⚠️ Mantido exatamente como você pediu
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title,
@@ -115,6 +113,7 @@ const RemindersScreen = ({ navigation }: any) => {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [calendarVisible, setCalendarVisible] = useState(true);
   const calendarHeight = useState(new Animated.Value(1))[0];
+  const [isSaving, setIsSaving] = useState(false);
 
   const filters = ['Todos', 'Ativos', 'Vencidos'];
 
@@ -179,6 +178,8 @@ const RemindersScreen = ({ navigation }: any) => {
   };
 
   const handleSaveReminder = async () => {
+    if (isSaving) return; // evita duplo clique
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -187,15 +188,20 @@ const RemindersScreen = ({ navigation }: any) => {
       return;
     }
 
+    setIsSaving(true); // 🔒 trava o botão
+
     try {
-      let notificationId = await scheduleLocalNotification(
+      const notificationId = await scheduleLocalNotification(
         reminderDate,
         reminderTime,
         reminderTitle,
         reminderDescription || 'Você tem um lembrete!'
       );
 
-      if (!notificationId) return;
+      if (!notificationId) {
+        setIsSaving(false);
+        return;
+      }
 
       const reminderData = {
         title: reminderTitle.trim(),
@@ -204,7 +210,6 @@ const RemindersScreen = ({ navigation }: any) => {
         time: reminderTime.trim(),
         user_id: user.id,
         updated_at: new Date().toISOString(),
-        notification_id: notificationId,
       };
 
       if (editingReminder) {
@@ -227,8 +232,11 @@ const RemindersScreen = ({ navigation }: any) => {
     } catch (error) {
       console.error('Erro ao salvar lembrete:', error);
       Alert.alert('Erro', 'Não foi possível salvar o lembrete.');
+    } finally {
+      setIsSaving(false); // 🔓 libera novamente
     }
   };
+
 
   const handleDeleteReminder = (reminder: any) => {
     Alert.alert('Confirmar exclusão', `Excluir o lembrete "${reminder.title}"?`, [
@@ -238,9 +246,12 @@ const RemindersScreen = ({ navigation }: any) => {
         style: 'destructive',
         onPress: async () => {
           try {
-            if (reminder.notification_id) {
-              await Notifications.cancelScheduledNotificationAsync(reminder.notification_id);
-            }
+            if (reminder.id) {
+              try {
+                await Notifications.cancelAllScheduledNotificationsAsync();
+                } catch {}
+              }
+
 
             const { error } = await supabase
               .from('reminders')
@@ -279,6 +290,22 @@ const RemindersScreen = ({ navigation }: any) => {
     if (selectedFilter === 'Vencidos' && isActive) return false;
     if (selectedDate && formatted !== selectedDate) return false;
     return true;
+  });
+
+  const groupedReminders = filteredReminders.reduce((acc, reminder) => {
+    const [day, month, year] = reminder.date.split('/').map(Number);
+    const monthName = new Date(year, month - 1).toLocaleString('pt-BR', { month: 'long' });
+    const monthYear = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} de ${year}`;
+    (acc[monthYear] = acc[monthYear] || []).push(reminder);
+    return acc;
+  }, {});
+
+  const months = Object.keys(groupedReminders).sort((a, b) => {
+    const [monthA, yearA] = a.split(' de ');
+    const [monthB, yearB] = b.split(' de ');
+    const dateA = new Date(`${monthA} 1, ${yearA}`);
+    const dateB = new Date(`${monthB} 1, ${yearB}`);
+    return dateB - dateA;
   });
 
   if (loading) {
@@ -378,7 +405,7 @@ const RemindersScreen = ({ navigation }: any) => {
           contentContainerStyle={{ paddingVertical: 8 }}
         />
 
-        {filteredReminders.length === 0 ? (
+        {Object.keys(groupedReminders).length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="bell-outline" size={64} color={theme.text} />
             <Text style={[styles.emptyStateText, { color: theme.text }]}>
@@ -386,37 +413,45 @@ const RemindersScreen = ({ navigation }: any) => {
             </Text>
           </View>
         ) : (
-          filteredReminders.map((reminder) => (
-            <View key={reminder.id} style={[styles.reminderItem, { backgroundColor: theme.card }]}>
-              <MaterialCommunityIcons name="clock-outline" size={24} color={theme.text} />
-              <View style={styles.reminderDetails}>
-                <Text style={[styles.reminderTitle, { color: theme.text }]}>
-                  {reminder.title}
-                </Text>
-                {reminder.description ? (
-                  <Text style={[styles.reminderDescription, { color: theme.text }]}>
-                    {reminder.description}
-                  </Text>
-                ) : null}
-                <Text style={[styles.reminderDate, { color: theme.text }]}>
-                  {reminder.date} às {reminder.time}
-                </Text>
-              </View>
-              <View style={styles.reminderActions}>
-                <TouchableOpacity
-                  onPress={() => handleEditReminder(reminder)}
-                  style={styles.editButton}>
-                  <MaterialCommunityIcons name="pencil" size={18} color={theme.text} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleDeleteReminder(reminder)}
-                  style={styles.deleteButton}>
-                  <MaterialCommunityIcons name="delete" size={18} color={theme.red} />
-                </TouchableOpacity>
-              </View>
+          months.map(monthYear => (
+            <View key={monthYear} style={{ marginTop: 20 }}>
+              <Text style={[styles.sectionTitle, { color: theme.text, fontSize: 18, marginBottom: 10 }]}>
+                {monthYear}
+              </Text>
+              {groupedReminders[monthYear].map((reminder) => (
+                <View key={reminder.id} style={[styles.reminderItem, { backgroundColor: theme.card }]}>
+                  <MaterialCommunityIcons name="clock-outline" size={24} color={theme.text} />
+                  <View style={styles.reminderDetails}>
+                    <Text style={[styles.reminderTitle, { color: theme.text }]}>{reminder.title}</Text>
+                    {reminder.description ? (
+                      <Text style={[styles.reminderDescription, { color: theme.text }]}>
+                        {reminder.description}
+                      </Text>
+                    ) : null}
+                    <Text style={[styles.reminderDate, { color: theme.text }]}>
+                      {reminder.date} às {reminder.time}
+                    </Text>
+                  </View>
+                  <View style={styles.reminderActions}>
+                    <TouchableOpacity
+                      onPress={() => handleEditReminder(reminder)}
+                      style={styles.editButton}
+                    >
+                      <MaterialCommunityIcons name="pencil" size={18} color={theme.text} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteReminder(reminder)}
+                      style={styles.deleteButton}
+                    >
+                      <MaterialCommunityIcons name="delete" size={18} color={theme.red} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
             </View>
           ))
         )}
+
       </ScrollView>
 
       {/* 🟢 Botão flutuante corrigido */}
@@ -471,8 +506,18 @@ const RemindersScreen = ({ navigation }: any) => {
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Text style={[styles.modalButton, { color: theme.red }]}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleSaveReminder}>
-                <Text style={[styles.modalButton, { color: theme.green }]}>Salvar</Text>
+              <TouchableOpacity
+                onPress={!isSaving ? handleSaveReminder : undefined}
+                disabled={isSaving}
+              >
+                <Text
+                  style={[
+                    styles.modalButton,
+                    { color: isSaving ? theme.gray : theme.green },
+                  ]}
+                >
+                  {isSaving ? 'Salvando...' : 'Salvar'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -516,6 +561,11 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContainer: { width: '90%', borderRadius: 12, padding: 20 },
