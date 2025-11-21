@@ -469,8 +469,8 @@ const RemindersScreen = ({ navigation }) => {
       </Animated.View>
 
       {/* Filters */}
-      <View style={{ marginBottom: 8 }}>
-        <View style={{ flexDirection: 'row', paddingHorizontal: 4 }}>
+
+      <View style={{ flexDirection: 'row', marginBottom: 10 }}>
           {filters.map((item) => (
             <TouchableOpacity key={item} onPress={() => setSelectedFilter(item)} style={{ marginRight: 8 }}>
               <View
@@ -488,7 +488,6 @@ const RemindersScreen = ({ navigation }) => {
               </View>
             </TouchableOpacity>
           ))}
-        </View>
       </View>
 
       {/* Reminder List */}
@@ -497,7 +496,7 @@ const RemindersScreen = ({ navigation }) => {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         renderSectionHeader={({ section: { title } }) => (
-          <View style={{ marginTop: 20 }}>
+          <View style={{ marginTop: 3 }}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>{title}</Text>
           </View>
         )}
@@ -561,7 +560,7 @@ const RemindersScreen = ({ navigation }) => {
       </TouchableOpacity>
 
       {/* Modal */}
-      <Modal visible={modalVisible} transparent animationType="slide">
+      <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
             <Text style={[styles.modalTitle, { color: theme.text }]}>
@@ -672,7 +671,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 0, textAlign: 'center' },
   centered: { justifyContent: 'center', alignItems: 'center' },
-  filterItem: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20 },
+  filterItem: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 15 },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -686,7 +685,7 @@ const styles = StyleSheet.create({
   reminderItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
+    padding: 14,
     borderRadius: 10,
     marginBottom: 10,
     elevation: 2,

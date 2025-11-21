@@ -1,36 +1,14 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../supabase';
 import PropTypes from 'prop-types';
 import { useTheme } from '../operacoes/ThemeContext';
 
-const TransactionItem = ({ item, theme }) => (
-  <View style={[styles.transactionItem, { backgroundColor: theme.card }]}>
-    <MaterialCommunityIcons
-      name={item.type === 'Entradas' ? 'arrow-up' : 'arrow-down'}
-      size={26}
-      color={item.type === 'Entradas' ? theme.green : theme.red}
-    />
-    <View style={styles.transactionDetails}>
-      <Text style={[styles.categorytitle, { color: theme.text }]}>{item.category}</Text>
-      <Text style={[styles.transactionDescription, { color: theme.text }]}>
-        {item.description || 'Sem descrição'}
-      </Text>
-    </View>
-    <Text
-      style={[
-        styles.transactionAmount,
-        { color: item.type === 'Entradas' ? theme.green : theme.red },
-      ]}
-    >
-      {item.type === 'Entradas' ? '+' : '-'}R$ {item.total.toFixed(2).replace('.', ',')}
-    </Text>
-  </View>
-);
-
 export default function HomeScreen({ navigation }) {
   const { theme } = useTheme();
+  const styles = getStyles(theme);
+
   const [operations, setOperations] = useState([]);
   const [balance, setBalance] = useState(0);
   const [monthBalance, setMonthBalance] = useState(0);
@@ -63,7 +41,7 @@ export default function HomeScreen({ navigation }) {
 
     const mapped = data.map(op => {
       const dateUTC = new Date(op.date);
-      const dateLocal = new Date(dateUTC.getTime() + dateUTC.getTimezoneOffset() * 60000 );
+      const dateLocal = new Date(dateUTC.getTime() + dateUTC.getTimezoneOffset() * 60000);
 
       return {
         ...op,
@@ -88,14 +66,13 @@ export default function HomeScreen({ navigation }) {
     }, 0);
     setMonthBalance(monthTotal);
 
-  const grouped = mapped.reduce((acc, item) => {
-    const d = item.dateObj;
-    const monthName = d.toLocaleString('pt-BR', { month: 'long' });
-    const monthYear = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} de ${d.getFullYear()}`;
-    (acc[monthYear] = acc[monthYear] || []).push(item);
-    return acc;
-  }, {});
-
+    const grouped = mapped.reduce((acc, item) => {
+      const d = item.dateObj;
+      const monthName = d.toLocaleString('pt-BR', { month: 'long' });
+      const monthYear = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} de ${d.getFullYear()}`;
+      (acc[monthYear] = acc[monthYear] || []).push(item);
+      return acc;
+    }, {});
 
     setOperations(grouped);
     setLoading(false);
@@ -118,7 +95,7 @@ export default function HomeScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={[styles.homeContainer, styles.centered, { backgroundColor: theme.background }]}>
+      <View style={[styles.homeContainer, styles.centered]}>
         <Text style={{ color: theme.text }}>Carregando...</Text>
       </View>
     );
@@ -133,74 +110,6 @@ export default function HomeScreen({ navigation }) {
   });
 
   const monthName = now.toLocaleString('pt-BR', { month: 'long' });
-
-  return (
-    <ScrollView style={[styles.homeContainer, { backgroundColor: theme.background }]}>
-      {/* 💰 SALDOS */}
-      <View style={styles.header}>
-        <Text style={[styles.balanceTitle, { color: theme.text }]}>Saldo</Text>
-        <Text
-          style={[
-            styles.balanceValue,
-            { color: balance >= 0 ? theme.green : theme.red },
-          ]}
-        >
-          R$ {balance.toFixed(2).replace('.', ',')}
-        </Text>
-        <Text style={[styles.monthBalance, { color: theme.text }]}>
-          Saldo de {monthName.charAt(0).toUpperCase() + monthName.slice(1)}:{' '}
-          <Text style={{ color: monthBalance >= 0 ? theme.green : theme.red }}>
-            R$ {monthBalance.toFixed(2).replace('.', ',')}
-          </Text>
-        </Text>
-      </View>
-
-      {dates.length === 0 ? (
-        <View style={styles.emptyState}>
-          <MaterialCommunityIcons name="wallet-outline" size={64} color={theme.text} />
-          <Text style={[styles.emptyStateText, { color: theme.text }]}>
-            Nenhuma operação neste mês
-          </Text>
-          <Text style={[styles.emptyStateSubtext, { color: theme.text }]}>
-            Adicione sua primeira operação!
-          </Text>
-        </View>
-      ) : (
-        dates.map(monthYear => (
-          <View key={monthYear}>
-            <Text style={[styles.sectionTitle, { color: theme.text, fontSize: 18, marginBottom: 10 }]}>
-              {monthYear}
-            </Text>
-            {operations[monthYear].map(item => (
-              <TouchableOpacity key={item.id} onPress={() => handleOperationPress(item)}>
-                <View style={[styles.transactionItem, { backgroundColor: theme.card }]}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.categorytitle, { color: theme.text }]}>
-                      {item.category}
-                    </Text>
-                    <Text style={[styles.transactionDescription, { color: theme.text }]}>
-                      {item.description || 'Sem descrição'}
-                    </Text>
-                    <Text style={[{ color: theme.text, fontSize: 12, marginTop: 2 }]}>
-                      {item.displayDate}
-                    </Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.transactionAmount,
-                      { color: item.type === 'Entradas' ? theme.green : theme.red },
-                    ]}
-                  >
-                    {item.type === 'Entradas' ? '+' : '-'}R$ {item.total.toFixed(2).replace('.', ',')}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        ))
-      )}
-    </ScrollView>
-  );
 
   function handleOperationPress(item) {
     if (!item.id) {
@@ -243,6 +152,71 @@ export default function HomeScreen({ navigation }) {
       ]
     );
   }
+
+  return (
+    <ScrollView style={styles.homeContainer} contentContainerStyle={{ paddingBottom: 40 }}>
+      {/* HEADER */}
+      <View style={styles.header}>
+        <Text style={styles.balanceTitle}>Saldo</Text>
+
+        <Text
+          style={[
+            styles.balanceValue,
+            { color: balance >= 0 ? theme.green : theme.red },
+          ]}
+        >
+          R$ {balance.toFixed(2).replace('.', ',')}
+        </Text>
+
+        <Text style={styles.monthBalance}>
+          Saldo de {monthName.charAt(0).toUpperCase() + monthName.slice(1)}:{' '}
+          <Text style={{ color: monthBalance >= 0 ? theme.green : theme.red }}>
+            R$ {monthBalance.toFixed(2).replace('.', ',')}
+          </Text>
+        </Text>
+      </View>
+
+      {/* LIST */}
+      {dates.length === 0 ? (
+        <View style={styles.emptyState}>
+          <MaterialCommunityIcons name="wallet-outline" size={64} color={theme.text} />
+          <Text style={styles.emptyStateText}>Nenhuma operação neste mês</Text>
+          <Text style={styles.emptyStateSubtext}>Adicione sua primeira operação!</Text>
+        </View>
+      ) : (
+        dates.map(monthYear => (
+          <View key={monthYear} style={{ marginBottom: 20 }}>
+            <Text style={styles.sectionTitle}>{monthYear}</Text>
+
+            {operations[monthYear].map(item => (
+              <TouchableOpacity key={item.id} onPress={() => handleOperationPress(item)}>
+                <View style={styles.transactionItem}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.categoryTitle}>{item.category}</Text>
+                    <Text style={styles.transactionDescription}>
+                      {item.description || 'Sem descrição'}
+                    </Text>
+                    <Text style={styles.transactionDate}>
+                      {item.displayDate}
+                    </Text>
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.transactionAmount,
+                      { color: item.type === 'Entradas' ? theme.green : theme.red },
+                    ]}
+                  >
+                    {item.type === 'Entradas' ? '+' : '-'}R$ {item.total.toFixed(2).replace('.', ',')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ))
+      )}
+    </ScrollView>
+  );
 }
 
 HomeScreen.propTypes = {
@@ -251,41 +225,107 @@ HomeScreen.propTypes = {
   }).isRequired,
 };
 
-TransactionItem.propTypes = {
-  item: PropTypes.shape({
-    type: PropTypes.string.isRequired,
-    category: PropTypes.string,
-    description: PropTypes.string,
-    total: PropTypes.number.isRequired,
-  }).isRequired,
-  theme: PropTypes.object.isRequired,
-};
+const getStyles = (theme) =>
+  StyleSheet.create({
+    homeContainer: {
+      flex: 1,
+      padding: 20,
+      backgroundColor: theme.background,
+    },
 
-const styles = StyleSheet.create({
-  homeContainer: { flex: 1, padding: 20 },
-  centered: { justifyContent: 'center', alignItems: 'center' },
-  header: { marginBottom: 20, alignItems: 'center', marginTop: 30 },
-  balanceTitle: { fontSize: 20, marginBottom: 7 },
-  balanceValue: { fontSize: 36, fontWeight: 'bold' },
-  monthBalance: { fontSize: 14, marginTop: 5 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', marginTop: 20, marginBottom: 10 },
-  transactionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 13,
-    borderRadius: 8,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  transactionDetails: { flex: 1, marginLeft: 10 },
-  categorytitle: { fontSize: 18, fontWeight: '600' },
-  transactionDescription: { fontSize: 14 },
-  transactionAmount: { fontSize: 16, fontWeight: 'bold' },
-  emptyState: { alignItems: 'center', marginTop: 100 },
-  emptyStateText: { fontSize: 18, fontWeight: 'bold', marginTop: 20 },
-  emptyStateSubtext: { fontSize: 14, marginTop: 5 },
-});
+    centered: {
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+
+    header: {
+      marginTop: 30,
+      marginBottom: 30,
+      alignItems: 'center',
+    },
+
+    balanceTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.text,
+      marginBottom: 6,
+    },
+
+    balanceValue: {
+      fontSize: 40,
+      fontWeight: 'bold',
+    },
+
+    monthBalance: {
+      marginTop: 6,
+      fontSize: 14,
+      color: theme.text,
+    },
+
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.text,
+      marginBottom: 12,
+    },
+
+    transactionItem: {
+      flexDirection: 'row',
+      backgroundColor: theme.card,
+      alignItems: 'center',
+      padding: 14,
+      borderRadius: 12,
+      marginBottom: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.07,
+      shadowRadius: 3,
+      elevation: 2,
+    },
+
+    categoryTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.text,
+    },
+
+    transactionDescription: {
+      fontSize: 14,
+      color: theme.text,
+      opacity: 0.8,
+    },
+
+    transactionDate: {
+      marginTop: 3,
+      fontSize: 11,
+      color: theme.text,
+      opacity: 0.7,
+    },
+
+    transactionAmount: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginLeft: 12,
+      textAlign: 'right',
+      alignSelf: 'flex-start',
+    },
+
+    emptyState: {
+      marginTop: 100,
+      alignItems: 'center',
+    },
+
+    emptyStateText: {
+      marginTop: 16,
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.text,
+    },
+
+    emptyStateSubtext: {
+      marginTop: 4,
+      fontSize: 14,
+      color: theme.text,
+      opacity: 0.7,
+    },
+  });

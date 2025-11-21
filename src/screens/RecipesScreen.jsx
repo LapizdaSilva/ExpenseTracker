@@ -12,6 +12,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import PropTypes from "prop-types";
 import { useTheme } from "../operacoes/ThemeContext";
 import { supabase } from "../../supabase";
+import { Modal } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 
 export default function MovimentacoesScreen({ navigation }) {
   const { theme } = useTheme();
@@ -21,6 +23,9 @@ export default function MovimentacoesScreen({ navigation }) {
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [tempMonth, setTempMonth] = useState(selectedMonth);
+  const [tempYear, setTempYear] = useState(selectedYear);
 
   const [totalBalance, setTotalBalance] = useState(0);
   const [monthBalance, setMonthBalance] = useState(0);
@@ -156,6 +161,16 @@ export default function MovimentacoesScreen({ navigation }) {
     setSelectedYear(newYear);
   };
 
+  const handleCalendarConfirm = (date) => {
+    setSelectedMonth(date.getMonth());
+    setSelectedYear(date.getFullYear());
+    setShowCalendar(false);
+  };
+
+  const handleCalendarCancel = () => {
+    setShowCalendar(false);
+  };
+
   if (loading) {
     return (
       <View
@@ -196,15 +211,87 @@ export default function MovimentacoesScreen({ navigation }) {
           <MaterialCommunityIcons name="chevron-left" size={30} color={theme.text} />
         </TouchableOpacity>
 
-        <Text style={[styles.monthTitle, { color: theme.text }]}>
-          {months[selectedMonth]} {selectedYear}
-        </Text>
+        <TouchableOpacity onPress={() => setShowCalendar(true)}>
+          <Text style={[styles.monthTitle, { color: theme.text }]}>
+            {months[selectedMonth]} {selectedYear}
+          </Text>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={() => changeMonth(1)}>
           <MaterialCommunityIcons name="chevron-right" size={30} color={theme.text} />
         </TouchableOpacity>
       </View>
 
+      <Modal
+        transparent
+        animationType="fade"
+        visible={showCalendar}
+        onRequestClose={() => setShowCalendar(false)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          justifyContent: "center",
+          alignItems: "center",
+        }}>
+          <View style={{
+            backgroundColor: theme.card,
+            width: "80%",
+            padding: 20,
+            borderRadius: 10,
+          }}>
+            
+            <Text style={{
+              fontSize: 18,
+              fontWeight: "bold",
+              marginBottom: 10,
+              color: theme.text
+            }}>
+              Selecionar mês e ano
+            </Text>
+
+            <Picker
+              selectedValue={tempMonth}
+              onValueChange={(value) => setTempMonth(value)}
+              style={{ color: theme.text }}
+            >
+              {months.map((m, index) => (
+                <Picker.Item key={index} label={m} value={index} />
+              ))}
+            </Picker>
+
+            <Picker
+              selectedValue={tempYear}
+              onValueChange={(value) => setTempYear(value)}
+              style={{ color: theme.text }}
+            >
+              {Array.from({ length: 30 }, (_, i) => selectedYear - 15 + i).map(
+                (y) => (
+                  <Picker.Item key={y} label={String(y)} value={y} />
+                )
+              )}
+            </Picker>
+
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 15 }}>
+              <TouchableOpacity onPress={() => setShowCalendar(false)}>
+                <Text style={{ color: theme.red, fontSize: 16 }}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedMonth(tempMonth);
+                  setSelectedYear(tempYear);
+                  setShowCalendar(false);
+                }}
+              >
+                <Text style={{ color: theme.green, fontSize: 16 }}>Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+
+          </View>
+        </View>
+      </Modal>
+    
       {days.length === 0 ? (
         <View style={styles.emptyState}>
           <MaterialCommunityIcons name="calendar-blank-outline" size={64} color={theme.text} />
@@ -302,7 +389,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-  monthTitle: { fontSize: 20, fontWeight: "bold", marginHorizontal: 10 },
+  monthTitle: { fontSize: 20, fontWeight: "bold", marginHorizontal: 2 },
   daySection: { marginBottom: 15 },
   dayTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 8 },
   transactionItem: {
