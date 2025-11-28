@@ -13,7 +13,6 @@ import PropTypes from "prop-types";
 import { useTheme } from "../operacoes/ThemeContext";
 import { supabase } from "../../supabase";
 import { Modal } from "react-native";
-import { Picker } from "@react-native-picker/picker";
 
 export default function MovimentacoesScreen({ navigation }) {
   const { theme } = useTheme();
@@ -250,27 +249,64 @@ export default function MovimentacoesScreen({ navigation }) {
               Selecionar mês e ano
             </Text>
 
-            <Picker
-              selectedValue={tempMonth}
-              onValueChange={(value) => setTempMonth(value)}
-              style={{ color: theme.text }}
-            >
-              {months.map((m, index) => (
-                <Picker.Item key={index} label={m} value={index} />
-              ))}
-            </Picker>
+            {/* Seleção do mês */}
+            <Text style={{ color: theme.text, marginTop: 10, fontSize: 20, fontWeight: 'bold'}}>Mês</Text>
+            <View style={{ maxHeight: 200 }}>
+              <ScrollView>
+                {months.map((m, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => setTempMonth(index)}
+                    style={{
+                      paddingVertical: 10,
+                      paddingHorizontal: 5,
+                      backgroundColor: tempMonth === index ? theme.green : "transparent",
+                      borderRadius: 5,
+                      marginVertical: 4,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: tempMonth === index ? "#FFF" : theme.text,
+                        fontSize: 16,
+                      }}
+                    >
+                      {m}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
 
-            <Picker
-              selectedValue={tempYear}
-              onValueChange={(value) => setTempYear(value)}
-              style={{ color: theme.text }}
-            >
-              {Array.from({ length: 30 }, (_, i) => selectedYear - 15 + i).map(
-                (y) => (
-                  <Picker.Item key={y} label={String(y)} value={y} />
-                )
-              )}
-            </Picker>
+            {/* Seleção do ano */}
+            <Text style={{ color: theme.text, marginTop: 15, fontSize: 20, fontWeight: 'bold'}}>Ano</Text>
+            <View style={{ maxHeight: 200 }}>
+              <ScrollView>
+                {Array.from({ length: 30 }, (_, i) => selectedYear - 15 + i).map((y) => (
+                  <TouchableOpacity
+                    key={y}
+                    onPress={() => setTempYear(y)}
+                    style={{
+                      paddingVertical: 10,
+                      paddingHorizontal: 5,
+                      backgroundColor: tempYear === y ? theme.green : "transparent",
+                      borderRadius: 5,
+                      marginVertical: 4,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: tempYear === y ? "#FFF" : theme.text,
+                        fontSize: 16,
+                      }}
+                    >
+                      {y}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
 
             <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 15 }}>
               <TouchableOpacity onPress={() => setShowCalendar(false)}>
