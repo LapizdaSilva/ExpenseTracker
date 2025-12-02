@@ -7,11 +7,84 @@ import {
   TouchableOpacity,
   Alert,
   FlatList,
+  Modal,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import PropTypes from "prop-types";
 import { useTheme } from "../operacoes/ThemeContext";
 import { supabase } from "../../supabase";
+
+const MonthYearSelector = ({
+  months,
+  selectedMonth,
+  selectedYear,
+  setTempMonth,
+  setTempYear,
+  theme,
+}) => {
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 30 }, (_, i) => currentYear - 15 + i);
+
+  return (
+    <View style={{ flexDirection: "row", height: 200 }}>
+
+      {/* Seletor de Mês */}
+      <ScrollView style={{ flex: 1, borderRightWidth: 1, borderRightColor: theme.text }}>
+        {months.map((m, index) => {
+          const isSelected = selectedMonth === index;
+          return (
+            <TouchableOpacity
+              key={index}
+              onPress={() => setTempMonth(index)}
+              style={{
+                padding: 10,
+                backgroundColor: isSelected ? theme.selected : "transparent",
+              }}
+            >
+              <Text
+                style={{
+                  color: isSelected ? theme.selectedText : theme.text,
+                  textAlign: "center",
+                  fontWeight: isSelected ? "bold" : "normal",
+                }}
+              >
+                {m}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Seletor de Ano */}
+      <ScrollView style={{ flex: 1 }}>
+        {years.map((y) => {
+          const isSelected = selectedYear === y;
+
+          return (
+            <TouchableOpacity
+              key={y}
+              onPress={() => setTempYear(y)}
+              style={{
+                padding: 10,
+                backgroundColor: isSelected ? theme.selected : "transparent",
+              }}
+            >
+              <Text
+                style={{
+                  color: isSelected ? theme.selectedText : theme.text,
+                  textAlign: "center",
+                  fontWeight: isSelected ? "bold" : "normal",
+                }}
+              >
+                {String(y)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+};
 
 export default function MovimentacoesScreen({ navigation }) {
   const { theme } = useTheme();
@@ -21,6 +94,9 @@ export default function MovimentacoesScreen({ navigation }) {
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [tempMonth, setTempMonth] = useState(selectedMonth);
+  const [tempYear, setTempYear] = useState(selectedYear);
 
   const [totalBalance, setTotalBalance] = useState(0);
   const [monthBalance, setMonthBalance] = useState(0);
@@ -103,7 +179,6 @@ export default function MovimentacoesScreen({ navigation }) {
       );
     });
 
-    // 🧮 Calcula saldo do mês selecionado
     const monthBal = filtered.reduce((sum, op) => {
       return op.type === "Entradas" ? sum + op.total : sum - op.total;
     }, 0);
@@ -156,6 +231,12 @@ export default function MovimentacoesScreen({ navigation }) {
     setSelectedYear(newYear);
   };
 
+  const handleCalendarConfirm = () => {
+    setSelectedMonth(tempMonth);
+    setSelectedYear(tempYear);
+    setShowCalendar(false);
+  };
+
   if (loading) {
     return (
       <View
@@ -177,7 +258,6 @@ export default function MovimentacoesScreen({ navigation }) {
       style={[styles.container, { backgroundColor: theme.background }]}
       contentContainerStyle={{ paddingBottom: 40 }}
     >
-      {/* 💰 SALDOS */}
       <View style={styles.balanceContainer}>
         <Text style={[styles.totalBalanceText, { color: totalBalance >= 0 ? theme.green : theme.red }]}> Saldo Total </Text>
         <Text style={[styles.totalBalanceText, { color: totalBalance >= 0 ? theme.green : theme.red }]}>
@@ -196,15 +276,74 @@ export default function MovimentacoesScreen({ navigation }) {
           <MaterialCommunityIcons name="chevron-left" size={30} color={theme.text} />
         </TouchableOpacity>
 
-        <Text style={[styles.monthTitle, { color: theme.text }]}>
-          {months[selectedMonth]} {selectedYear}
-        </Text>
+        <TouchableOpacity onPress={() => {
+          setTempMonth(selectedMonth);
+          setTempYear(selectedYear);
+          setShowCalendar(true);
+        }}>
+          <Text style={[styles.monthTitle, { color: theme.text }]}>
+            {months[selectedMonth]} {selectedYear}
+          </Text>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={() => changeMonth(1)}>
           <MaterialCommunityIcons name="chevron-right" size={30} color={theme.text} />
         </TouchableOpacity>
       </View>
 
+      <Modal
+        transparent
+        animationType="fade"
+        visible={showCalendar}
+        onRequestClose={() => setShowCalendar(false)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          justifyContent: "center",
+          alignItems: "center",
+        }}>
+          <View style={{
+            backgroundColor: theme.card,
+            width: "80%",
+            padding: 20,
+            borderRadius: 10,
+          }}>
+            
+            <Text style={{
+              fontSize: 18,
+              fontWeight: "bold",
+              marginBottom: 10,
+              color: theme.text
+            }}>
+              Selecionar mês e ano
+            </Text>
+
+            <MonthYearSelector
+              months={months}
+              selectedMonth={tempMonth}
+              selectedYear={tempYear}
+              setTempMonth={setTempMonth}
+              setTempYear={setTempYear}
+              theme={theme}
+            />
+
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 15 }}>
+              <TouchableOpacity onPress={() => setShowCalendar(false)}>
+                <Text style={{ color: theme.red, fontSize: 16 }}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleCalendarConfirm}
+              >
+                <Text style={{ color: theme.green, fontSize: 16 }}>Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+
+          </View>
+        </View>
+      </Modal>
+    
       {days.length === 0 ? (
         <View style={styles.emptyState}>
           <MaterialCommunityIcons name="calendar-blank-outline" size={64} color={theme.text} />
@@ -302,7 +441,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-  monthTitle: { fontSize: 20, fontWeight: "bold", marginHorizontal: 10 },
+  monthTitle: { fontSize: 20, fontWeight: "bold", marginHorizontal: 2 },
   daySection: { marginBottom: 15 },
   dayTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 8 },
   transactionItem: {

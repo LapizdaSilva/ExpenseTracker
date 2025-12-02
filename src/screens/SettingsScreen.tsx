@@ -38,8 +38,8 @@ const SettingsScreen = ({ navigation }) => {
 
   const handleAbout = () => {
     Alert.alert(
-      "Sobre o UpFin",
-      "UpFin v3.0.0\n\nUm aplicativo para controle financeiro pessoal.\n\n© 2025 Lumina Team",
+      "Sobre o Credo",
+      "Credo v3.0.0\n\nUm aplicativo para controle financeiro pessoal.\n\n© 2025 Lumina Team",
       [{ text: "OK" }]
     );
   };
@@ -47,7 +47,7 @@ const SettingsScreen = ({ navigation }) => {
   const handleSupport = () => {
     Alert.alert(
       "Suporte",
-      "Para suporte técnico, entre em contato:\n\nEmail: suporte@UpFin.com\nTelefone: (11) 9999-9999",
+      "Para suporte técnico, entre em contato:\n\nEmail: suporte@credo.com\nTelefone: (11) 9999-9999",
       [{ text: "OK" }]
     );
   };
@@ -159,7 +159,7 @@ const SettingsScreen = ({ navigation }) => {
             onPress={handleSupport}
           />
           <List.Item
-            title="Sobre o UpFin"
+            title="Sobre o Credo"
             description="Informações sobre o aplicativo"
             titleStyle={{ color: theme.text }}
             descriptionStyle={{ color: theme.text }}

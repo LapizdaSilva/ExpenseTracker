@@ -7,7 +7,8 @@ export const lightTheme = {
   red: '#F44336',
   gray: '#A0A0A0',
   border: '#494949ff',
-  selected: '#6200EE',
+  selected: '#9c6fddff',
+  selectedText: '#000000',
   today: '#388E3C',
   arrow: '#000',
 };
@@ -22,6 +23,7 @@ export const darkTheme = {
   gray: '#d4d3d3ff',
   border: '#E0E0E0',
   selected: '#BB86FC',
+  selectedText: '#FFFFFF',
   today: '#00E676',
   arrow: '#FFF',
 };

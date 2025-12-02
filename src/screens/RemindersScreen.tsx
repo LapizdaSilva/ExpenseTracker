@@ -1,4 +1,3 @@
-// ReminderScreenEstiloRuim.tsx
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -11,6 +10,7 @@ import {
   Animated,
   SectionList,
   Platform,
+  TextInput,
 } from 'react-native';
 
 import { Calendar } from 'react-native-calendars';
@@ -20,8 +20,6 @@ import { supabase } from '../../supabase';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Easing } from 'react-native-reanimated';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { TextInput } from 'react-native';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -33,15 +31,14 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Formata data DD/MM/AAAA
-function formatDate(date) {
+function formatDate(date: Date): string {
   return `${String(date.getDate()).padStart(2, '0')}/${String(
     date.getMonth() + 1
   ).padStart(2, '0')}/${date.getFullYear()}`;
 }
 
 // Formata hora HH:MM
-function formatTime(date) {
+function formatTime(date: Date): string {
   return `${String(date.getHours()).padStart(2, '0')}:${String(
     date.getMinutes()
   ).padStart(2, '0')}`;
@@ -76,10 +73,10 @@ async function registerForPushNotificationsAsync() {
 }
 
 async function scheduleLocalNotification(
-  reminderDate,
-  reminderTime,
-  title,
-  body
+  reminderDate: string,
+  reminderTime: string,
+  title: string,
+  body: string
 ) {
   try {
     const [day, month, year] = reminderDate.split('/').map(Number);
@@ -102,10 +99,146 @@ async function scheduleLocalNotification(
 
     return notificationId;
   } catch (err) {
-    Alert.alert('Erro', err.message);
+    Alert.alert('Erro', (err as Error).message);
     return null;
   }
 }
+
+// 🆕 Componente de Seleção de Data/Hora Customizado (Substituindo DateTimePicker)
+const CustomDateTimePicker = ({
+  visible,
+  onClose,
+  mode,
+  date,
+  onDateChange,
+  theme,
+}) => {
+  const [tempDate, setTempDate] = useState(date);
+
+  const handleConfirm = () => {
+    onDateChange(tempDate);
+    onClose();
+  };
+
+  const handleDateChange = (event, selectedDate) => {
+    if (selectedDate) {
+      setTempDate(selectedDate);
+    }
+  };
+
+  // Se for data, usa o Calendar. Se for hora, usa um picker simples (ou mantém o DateTimePicker para hora se for o caso)
+  // Como o objetivo é remover a dependência nativa, vamos usar um modal simples para hora.
+  // No entanto, para manter a funcionalidade, vamos focar em remover a dependência nativa do @react-native-community/datetimepicker
+  // e usar um componente que não a exija. Como não temos um componente de hora sem dependência nativa,
+  // vamos usar o Calendar para data e um input simples para hora, ou manter o DateTimePicker
+  // se o usuário for usar o Expo Go (o que não é o caso, já que ele está fazendo build nativa).
+  // A melhor abordagem é usar um componente que não seja nativo.
+
+  if (mode === 'date') {
+    return (
+      <Modal visible={visible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContainer, { backgroundColor: theme.card, width: '95%' }]}>
+            <Calendar
+              key={theme.background}
+              style={styles.calendar}
+              theme={{
+                backgroundColor: theme.background,
+                calendarBackground: theme.background,
+                monthTextColor: theme.text,
+                dayTextColor: theme.text,
+                selectedDayBackgroundColor: theme.selected,
+                selectedDayTextColor: '#FFF',
+                textDisabledColor: theme.gray || '#888',
+                arrowColor: theme.text,
+                dotColor: theme.green,
+                selectedDotColor: '#FFF',
+              }}
+              current={tempDate.toISOString().split('T')[0]}
+              onDayPress={(day) => {
+                const newDate = new Date(day.timestamp);
+                newDate.setHours(date.getHours(), date.getMinutes());
+                setTempDate(newDate);
+              }}
+              markedDates={{
+                [tempDate.toISOString().split('T')[0]]: {
+                  selected: true,
+                  selectedColor: theme.selected,
+                },
+              }}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity onPress={onClose}>
+                <Text style={[styles.modalButton, { color: theme.red }]}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleConfirm}>
+                <Text style={[styles.modalButton, { color: theme.green }]}>Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
+
+  // Para hora, usaremos um modal simples com inputs de texto para evitar dependências nativas
+  if (mode === 'time') {
+    const [hour, setHour] = useState(date.getHours().toString().padStart(2, '0'));
+    const [minute, setMinute] = useState(date.getMinutes().toString().padStart(2, '0'));
+
+    const handleTimeConfirm = () => {
+      const h = parseInt(hour);
+      const m = parseInt(minute);
+
+      if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) {
+        Alert.alert('Erro', 'Hora inválida.');
+        return;
+      }
+
+      const newDate = new Date(date);
+      newDate.setHours(h, m);
+      onDateChange(newDate);
+      onClose();
+    };
+
+    return (
+      <Modal visible={visible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContainer, { backgroundColor: theme.card, width: '80%' }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Selecionar Hora</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+              <TextInput
+                style={[styles.timeInput, { borderColor: theme.border, color: theme.text }]}
+                value={hour}
+                onChangeText={(text) => setHour(text.replace(/[^0-9]/g, '').slice(0, 2))}
+                keyboardType="numeric"
+                maxLength={2}
+              />
+              <Text style={[styles.timeSeparator, { color: theme.text }]}>:</Text>
+              <TextInput
+                style={[styles.timeInput, { borderColor: theme.border, color: theme.text }]}
+                value={minute}
+                onChangeText={(text) => setMinute(text.replace(/[^0-9]/g, '').slice(0, 2))}
+                keyboardType="numeric"
+                maxLength={2}
+              />
+            </View>
+            <View style={styles.modalActions}>
+              <TouchableOpacity onPress={onClose}>
+                <Text style={[styles.modalButton, { color: theme.red }]}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleTimeConfirm}>
+                <Text style={[styles.modalButton, { color: theme.green }]}>Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
+
+  return null;
+};
 
 const RemindersScreen = ({ navigation }) => {
   const { theme } = useTheme();
@@ -123,12 +256,12 @@ const RemindersScreen = ({ navigation }) => {
   const [reminderDate, setReminderDate] = useState(new Date());
   const [reminderTime, setReminderTime] = useState(new Date());
 
-  // Controles dos pickers
+  // Controles dos pickers (agora para o modal customizado)
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
   const [selectedFilter, setSelectedFilter] = useState('Todos');
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const [calendarVisible, setCalendarVisible] = useState(true);
   const calendarHeight = useState(new Animated.Value(1))[0];
@@ -180,7 +313,7 @@ const RemindersScreen = ({ navigation }) => {
     setModalVisible(true);
   };
 
-  const handleEditReminder = (r) => {
+  const handleEditReminder = (r: any) => {
     setEditingReminder(r);
     setReminderTitle(r.title);
     setReminderDescription(r.description);
@@ -269,7 +402,7 @@ const RemindersScreen = ({ navigation }) => {
     }
   };
 
-  const handleDeleteReminder = (reminder) => {
+  const handleDeleteReminder = (reminder: any) => {
     Alert.alert('Confirmar exclusão', `Excluir o lembrete "${reminder.title}"?`, [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -351,8 +484,8 @@ const RemindersScreen = ({ navigation }) => {
 
   // Agrupar por mês
   const sections = (() => {
-    const acc = {};
-    const order = [];
+    const acc: { [key: string]: { title: string; data: any[] } } = {};
+    const order: string[] = [];
 
     sortedReminders.forEach((r) => {
       const [day, month, year] = r.date.split('/').map(Number);
@@ -372,7 +505,7 @@ const RemindersScreen = ({ navigation }) => {
   })();
 
   const markedDates = (() => {
-    const marked = {};
+    const marked: { [key: string]: any } = {};
 
     reminders.forEach((r) => {
       if (!r.date) return;
@@ -560,7 +693,7 @@ const RemindersScreen = ({ navigation }) => {
         <MaterialCommunityIcons name="plus" size={28} color="#FFF" />
       </TouchableOpacity>
 
-      {/* Modal */}
+      {/* Modal de Edição/Criação */}
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
@@ -591,6 +724,7 @@ const RemindersScreen = ({ navigation }) => {
               multiline
             />
 
+            {/* 🆕 Botão de Data (Abre Modal Customizado) */}
             <TouchableOpacity
               style={[styles.inputTouchable, { borderColor: theme.border }]}
               onPress={() => setShowDatePicker(true)}
@@ -600,6 +734,7 @@ const RemindersScreen = ({ navigation }) => {
               </Text>
             </TouchableOpacity>
 
+            {/* 🆕 Botão de Hora (Abre Modal Customizado) */}
             <TouchableOpacity
               style={[styles.inputTouchable, { borderColor: theme.border }]}
               onPress={() => setShowTimePicker(true)}
@@ -608,33 +743,6 @@ const RemindersScreen = ({ navigation }) => {
                 {formatTime(reminderTime)}
               </Text>
             </TouchableOpacity>
-
-            {/* Date Picker */}
-            {showDatePicker && (
-              <DateTimePicker
-                value={reminderDate}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(e, selected) => {
-                  setShowDatePicker(false);
-                  if (selected) setReminderDate(selected);
-                }}
-              />
-            )}
-
-            {/* Time Picker */}
-            {showTimePicker && (
-              <DateTimePicker
-                value={reminderTime}
-                mode="time"
-                is24Hour
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(e, selected) => {
-                  setShowTimePicker(false);
-                  if (selected) setReminderTime(selected);
-                }}
-              />
-            )}
 
             <View style={styles.modalActions}>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -657,6 +765,25 @@ const RemindersScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+
+      {/* 🆕 Modais Customizados de Data e Hora */}
+      <CustomDateTimePicker
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        mode="date"
+        date={reminderDate}
+        onDateChange={setReminderDate}
+        theme={theme}
+      />
+
+      <CustomDateTimePicker
+        visible={showTimePicker}
+        onClose={() => setShowTimePicker(false)}
+        mode="time"
+        date={reminderTime}
+        onDateChange={setReminderTime}
+        theme={theme}
+      />
     </SafeAreaView>
   );
 };
@@ -702,6 +829,18 @@ const styles = StyleSheet.create({
       padding: 12,
       marginBottom: 10,
       fontSize: 16,
+  },
+  timeInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 24,
+    width: 60,
+    textAlign: 'center',
+  },
+  timeSeparator: {
+    fontSize: 24,
+    marginHorizontal: 10,
   },
   reminderDetails: { flex: 1, marginLeft: 15 },
   reminderTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 3 },
