@@ -47,7 +47,7 @@ const SettingsScreen = ({ navigation }) => {
   const handleSupport = () => {
     Alert.alert(
       "Suporte",
-      "Para suporte técnico, entre em contato:\n\nEmail: suporte@credo.com\nTelefone: (11) 9999-9999",
+      "Para suporte técnico, entre em contato:\n\nEmail: suporte@lumina.com\nTelefone: (11) 9999-9999",
       [{ text: "OK" }]
     );
   };
