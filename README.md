@@ -1,4 +1,4 @@
-# 📱 ExpenseTracker
+# 📱 Credo
 
 [![React Native](https://img.shields.io/badge/React%20Native-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactnative.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.io/)
@@ -6,13 +6,13 @@
 
 ## 🌟 Sobre o Projeto
 
-Este é o **ExpenseTracker**, um aplicativo mobile de gestão financeira pessoal desenvolvido em **React Native**, com backend baseado em **Supabase** para autenticação e persistência de dados.
+Este é o **Credo**, um aplicativo mobile de gestão financeira pessoal desenvolvido em **React Native**, com backend baseado em **Supabase** para autenticação e persistência de dados.
 
 O projeto foi desenvolvido integralmente como parte do curso técnico em Desenvolvimento de Sistemas, com o objetivo de consolidar habilidades em desenvolvimento mobile, integrações full stack e design de interfaces.
 
 ## 🚀 Funcionalidades
 
-O ExpenseTracker oferece um conjunto robusto de funcionalidades para o controle financeiro:
+O Credo oferece um conjunto robusto de funcionalidades para o controle financeiro:
 
 ### 📊 Gestão Financeira
 
@@ -107,4 +107,4 @@ eas build --platform android --local --profile preview
 
 ---
 
-Feito com 💙 por LapizdaSilva
+Feito com 💙
