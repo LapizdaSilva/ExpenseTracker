@@ -74,16 +74,7 @@ cd ExpenseTracker
 npm install
 ```
 
-### 3. Configurar Variáveis de Ambiente
-
-Crie um arquivo `.env` na raiz do projeto baseado no modelo e preencha com suas chaves do Supabase:
-
-```
-EXPO_PUBLIC_SUPABASE_URL=xxxx
-EXPO_PUBLIC_SUPABASE_ANON_KEY=xxxx
-```
-
-### 4. Iniciar o Projeto
+### 3. Iniciar o Projeto
 
 ```bash
 npx expo start
@@ -91,7 +82,7 @@ npx expo start
 
 ## 📦 Build Android (APK / AAB)
 
-Para gerar o build do aplicativo para Android, você pode usar o EAS (Expo Application Services) ou o build local via `gradlew`:
+Para gerar o build do aplicativo para Android, você pode usar o EAS (Expo Application Services) ou o build local:
 
 ### Opção 1: Usando EAS
 
