@@ -1,31 +1,100 @@
-# ExpenseTracker
+# 📱 ExpenseTracker
 
-ExpenseTracker is a React Native mobile application for managing personal finances, users can add, edit, and delete financial operations (expenses and incomes), filter by description or category, and visualize a list of transactions. All data is securely stored in Firebase.
+<!-- Badges Placeholder -->
+[![React Native](https://img.shields.io/badge/React%20Native-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactnative.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.io/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-##  Features
+## 🌟 Sobre o Projeto
 
-- 🔐 User authentication (via Firebase Auth)
-- ➕ Add financial operations (income or expenses)
-- 📝 Edit and delete operations
-- 🔎 Filter/search operations by category or description
-- 📊 Categorized entries for better tracking
-- ☁️ Cloud sync with Firebase Firestore
-- 🧾 Intuitive interface using React Native components
-- 🎨 Custom dropdown categories for each operation type
+Este é o **ExpenseTracker**, um aplicativo mobile de gestão financeira pessoal desenvolvido em **React Native**, com backend baseado em **Supabase** para autenticação e persistência de dados.
 
-##  Tech Stack
+O projeto foi desenvolvido integralmente como parte do curso técnico em Desenvolvimento de Sistemas, com o objetivo de consolidar habilidades em desenvolvimento mobile, integrações full stack e design de interfaces.
 
-- [React Native](https://reactnative.dev/)
-- [Expo](https://expo.dev/)
-- [Firebase (Firestore & Auth)](https://firebase.google.com/)
-- [React Navigation](https://reactnavigation.org/)
-- [PropTypes](https://reactjs.org/docs/typechecking-with-proptypes.html)
+## 🚀 Funcionalidades
+
+O ExpenseTracker oferece um conjunto robusto de funcionalidades para o controle financeiro:
+
+### 📊 Gestão Financeira
+- **Registro de Transações:** Adicione entradas e saídas com facilidade.
+- **Categorização:** Utilize categorias pré-definidas (ex.: Transporte, Alimentação, etc.).
+- **Detalhes da Operação:** Adicione descrição e valor para cada transação.
+- **Manutenção:** Edite e remova operações existentes.
+- **Visualização:** Listagem clara e organizada de todas as transações.
+
+### 🗓️ Sistema de Lembretes
+- **Calendário Interativo:** Visualize dias com transações ou lembretes marcados.
+- **Filtro por Dia:** Exibição filtrada de operações e lembretes por dia.
+- **Status de Lembretes:** Filtros para lembretes ativos, inativos e todos.
+- **Agendamento:** Agendamento com dia e hora específicos.
+- **Notificações:** Notificações locais para lembretes.
+
+### ⚙️ Configurações
+- **Personalização:** Tema claro/escuro.
+- **Notificações:** Ativar/desativar notificações.
+- **Informações:** Acesso a informações do aplicativo.
+
+### 👤 Autenticação e Segurança
+- **Supabase Auth:** Registro e login de usuários.
+- **Persistência de Sessão:** Manutenção da sessão do usuário.
+- **Segurança:** Armazenamento seguro de dados.
+
+## 🧰 Tecnologias Utilizadas
+
+| Categoria | Tecnologia | Descrição |
+| :--- | :--- | :--- |
+| **Front-end** | React Native, Expo | Desenvolvimento mobile multiplataforma. |
+| | React Navigation | Navegação entre telas. |
+| | React Hook Form, Hooks | Gerenciamento de formulários e estado. |
+| | Async Storage | Armazenamento local de dados. |
+| **Back-end / Infra** | Supabase (Auth + Postgres) | Backend-as-a-Service, autenticação e banco de dados relacional. |
+| | Modelagem de Dados | Estrutura de tabelas otimizada. |
+| | Políticas de Acesso | Regras de segurança e políticas de acesso. |
+| **Ferramentas e Dev** | WSL, Android SDK | Configuração para builds Android e desenvolvimento local. |
+| | Testes Manuais | Testes manuais estruturados. |
+| | Eslint/Prettier | Ferramentas de linting e formatação de código (se aplicável). |
+
+## 🛠️ Como Rodar o Projeto
+
+Siga os passos abaixo para configurar e executar o projeto em sua máquina:
+
+### 1. Clonar o Repositório
+```bash
+git clone https://github.com/LapizdaSilva/ExpenseTracker.git
+cd ExpenseTracker
+```
+
+### 2. Instalar Dependências
+```bash
+npm install
+```
+
+### 3. Configurar Variáveis de Ambiente
+Crie um arquivo `.env` na raiz do projeto baseado no modelo e preencha com suas chaves do Supabase:
+
+```
+EXPO_PUBLIC_SUPABASE_URL=xxxx
+EXPO_PUBLIC_SUPABASE_ANON_KEY=xxxx
+```
+
+### 4. Iniciar o Projeto
+```bash
+npx expo start
+```
+
+## 📦 Build Android (APK / AAB)
+
+Para gerar o build do aplicativo para Android, você pode usar o EAS (Expo Application Services) ou o build local via `gradlew`:
+
+### Opção 1: Usando EAS
+```bash
+eas build -p android --profile preview
+```
+
+### Opção 2: Build Local (Requer WSL/Android SDK configurado)
+```bash
+gradlew assembleRelease
+```
 
 ---
-
-
-A simple and clean React Native app to track personal finances. Users can log income and expenses, edit transactions, and categorize operations. Built with Firebase for real-time data and authentication, it’s designed for ease of use and quick financial insights.
-
----
-
-Let me know if you want a version in **English**, or if you want a logo included!
+Feito com 💙 por LapizdaSilva
